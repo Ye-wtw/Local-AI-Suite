@@ -1,0 +1,17 @@
+{
+ "_comment": "模型几何。运行 python runner/detect.py --scan --write 可自动从 GGUF 头读取",
+ "my-model-7b": {
+  "layers": 32,
+  "kv_heads": 8,
+  "head_dim": 128,
+  "weights_mib": 4400,
+  "mmproj_mib": 0
+ },
+ "_fields": {
+  "layers": "block_count",
+  "kv_heads": "attention.head_count_kv",
+  "head_dim": "attention.key_length 或 embedding_length/head_count",
+  "weights_mib": "GGUF 文件大小",
+  "mmproj_mib": "多模态投影文件大小,没有就填 0"
+ }
+}

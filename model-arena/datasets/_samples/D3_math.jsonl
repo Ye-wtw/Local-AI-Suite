@@ -1,0 +1,5 @@
+{"id": "d3_alg_0001", "dim": "D3", "source": "selfmade", "subcat": "algebra", "type": "math", "question": "解方程：3(x-2)+4 = 2x+5，求 x。", "answer": "7", "tolerance": "exact", "notes": "3x-6+4=2x+5 → x=7"}
+{"id": "d3_geo_0001", "dim": "D3", "source": "selfmade", "subcat": "geometry", "type": "math", "question": "直角三角形两直角边分别为 6 和 8，求斜边长度。", "answer": "10", "tolerance": "exact", "notes": "勾股定理 6²+8²=100"}
+{"id": "d3_prob_0001", "dim": "D3", "source": "selfmade", "subcat": "probability", "type": "math", "question": "一个袋子里有 3 个红球和 2 个蓝球，不放回地连续取两个球，求两个都是红球的概率（用分数表示）。", "answer": "3/10", "tolerance": "equivalent-fraction", "notes": "(3/5)×(2/4)=6/20=3/10"}
+{"id": "d3_zh_0001", "dim": "D3", "source": "selfmade", "subcat": "chinese-word-problem", "type": "math", "question": "小明买了 3 支钢笔和 2 本笔记本，共花 44 元。已知每支钢笔比每本笔记本贵 2 元，求每支钢笔的价格。", "answer": "9.6", "tolerance": "0.01", "notes": "设钢笔x笔记本y：3x+2y=44, x=y+2 → 5y+6=44 → y=7.6, x=9.6"}
+{"id": "d3_seq_0001", "dim": "D3", "source": "selfmade-aime-style", "subcat": "sequence", "type": "math", "question": "数列 a₁=1，且对 n≥1 有 aₙ₊₁ = 2aₙ + 1。求 a₅。", "answer": "31", "tolerance": "exact", "notes": "a: 1,3,7,15,31 → a₅=31"}

@@ -1,16 +1,15 @@
-# 行尾统一。
-#
-# 这个项目全程按 LF 编写：源码、文档、配置一律 LF。
-# Windows 上默认会让 git 按 autocrlf 改写行尾，导致「全文件改动」的假 diff ——
-# 显式声明一次，之后在哪儿 clone 都一致。
+# 行尾统一。两个子项目各自还有一层更细的规则（llama-rig/.gitattributes）。
 * text=auto eol=lf
-
-# 例外：抓取来的真实输出必须原样保留。
-# test/fixtures/llama-server-help.txt 是 Windows 上 `llama-server --help` 的实际输出，
-# 它本来就是 CRLF；改成 LF 就不再是真实样本了，解析它的测试也就失去意义。
-test/fixtures/*.txt -text
 
 # 二进制资源不要当文本处理
 *.png binary
+*.jpg binary
+*.jpeg binary
 *.ico binary
 *.exe binary
+*.zip binary
+*.7z binary
+
+# Windows 批处理保持原样：实测本仓库的 .bat 是 CRLF，
+# 而 LF-only 的批处理在 cmd.exe 里 goto/label 行为不可靠。
+*.bat -text

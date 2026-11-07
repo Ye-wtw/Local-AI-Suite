@@ -1,0 +1,116 @@
+{
+  "_comment": "Endpoint profiles. 'local' is llama.cpp llama-server; adjust base_url/model to your setup.",
+  "endpoints": {
+    "local": {
+      "base_url": "http://127.0.0.1:8080",
+      "model": "Qwen3.6-35B-APEX",
+      "timeout": 600,
+      "extra": {
+        "temperature": 0
+      },
+      "engine": "llama.cpp"
+    },
+    "k1": {
+      "_comment": "Ternary-Bonsai-2-27B-PTQ1_0 on port 8092, for K1 preset speed measurement.",
+      "base_url": "http://127.0.0.1:8092",
+      "model": "bonsai27b-ptq1",
+      "timeout": 600,
+      "extra": {
+        "temperature": 0
+      },
+      "engine": "llama.cpp"
+    },
+    "q9b": {
+      "_comment": "Qwen3.5-9B-UD-Q4_K_XL on port 8091, text only. Used to compare small vs large model on D12.",
+      "base_url": "http://127.0.0.1:8091",
+      "model": "Qwen3.5-9B",
+      "timeout": 600,
+      "extra": {
+        "temperature": 0
+      },
+      "engine": "llama.cpp"
+    },
+    "vision": {
+      "_comment": "Ternary-Bonsai-2-27B PQ2 + mmproj-Q8_0, port 8090. Bare text engines reject images; D11 probes and skips them.",
+      "base_url": "http://127.0.0.1:8090",
+      "model": "bonsai27b-vision",
+      "timeout": 600,
+      "extra": {
+        "temperature": 0
+      },
+      "engine": "llama.cpp"
+    },
+    "ollama": {
+      "base_url": "http://127.0.0.1:11434",
+      "model": "qwen3",
+      "timeout": 600,
+      "extra": {
+        "temperature": 0
+      },
+      "engine": "ollama"
+    },
+    "mock": {
+      "base_url": "http://127.0.0.1:8099",
+      "model": "mock-model-80pct",
+      "timeout": 60,
+      "extra": {
+        "temperature": 0
+      },
+      "engine": "openai-compatible"
+    },
+    "deepseek": {
+      "base_url": "https://api.deepseek.com",
+      "model": "deepseek-flash",
+      "api_key_env": "DEEPSEEK_API_KEY",
+      "timeout": 600,
+      "extra": {
+        "temperature": 0
+      },
+      "_note": "deepseek-flash = DeepSeek-V4.1-Flash",
+      "engine": "cloud"
+    },
+    "deepseek-flash": {
+      "base_url": "https://api.deepseek.com",
+      "model": "deepseek-flash",
+      "api_key_env": "DEEPSEEK_API_KEY",
+      "timeout": 180,
+      "extra": {
+        "temperature": 0
+      },
+      "engine": "cloud"
+    },
+    "deepseek-pro": {
+      "base_url": "https://api.deepseek.com",
+      "model": "deepseek-v4-pro",
+      "api_key_env": "DEEPSEEK_API_KEY",
+      "timeout": 180,
+      "extra": {
+        "temperature": 0
+      },
+      "_note": "deepseek-v4-pro = DeepSeek-V4-Pro",
+      "engine": "cloud"
+    },
+    "kvmem": {
+      "base_url": "http://127.0.0.1:18260",
+      "model": "kv17-bonsai2t5",
+      "timeout": 900,
+      "extra": {
+        "temperature": 0
+      },
+      "_note": "KVMem 1.7 + Bonsai2-T5-MTP-r3-Q4（200K 档，预设 KV17-Bonsai2T5-200K.config.toml）",
+      "engine": "openai-compatible"
+    },
+    "queue": {
+      "base_url": "http://127.0.0.1:8084",
+      "model": "Qwen3.5-9B",
+      "timeout": 1800,
+      "extra": {
+        "temperature": 0
+      },
+      "cost": "free",
+      "engine": "openai-compatible",
+      "_auto": "由 runner/batch_queue.py 在批量评测时自动维护,不要手改"
+    }
+  },
+  "_engine_note": "engine 字段声明该端点的类型;留空则运行时自动探测。见 runner/engines.py。"
+}

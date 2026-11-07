@@ -1,0 +1,10 @@
+# Model Arena — 依赖说明
+#
+# 本项目**核心零依赖**：只用 Python 标准库（3.10+，需要 tomllib / stdlib_module_names）。
+# 下面两个是可选增强，不装也能跑全部核心功能。
+
+# --- 可选：原生窗口（不装则自动回退浏览器） ---
+# pywebview>=4.0
+
+# --- 可选：挖掘 DSH 会话存档（scripts/mine_sessions.py） ---
+# zstandard>=0.22

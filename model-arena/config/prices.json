@@ -1,0 +1,24 @@
+{
+  "_comment": "每 100 万 token 的价格(仅用于本地估算,请按官方最新价目核对)",
+  "deepseek": {
+    "in": 2.0,
+    "out": 8.0,
+    "cache_hit_in": 0.5,
+    "currency": "CNY"
+  },
+  "mock": {
+    "in": 0.0,
+    "out": 0.0,
+    "currency": "CNY"
+  },
+  "local": {
+    "in": 0.0,
+    "out": 0.0,
+    "currency": "CNY"
+  },
+  "cloud": {
+    "in": 0.0,
+    "out": 0.0,
+    "currency": "CNY"
+  }
+}

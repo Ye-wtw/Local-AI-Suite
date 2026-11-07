@@ -1,0 +1,82 @@
+{
+  "_comment": "评测分级。灰测(canary)的核心用途:任何量化/参数/版本变动后跑一次,与基线比对,发现回归。",
+  "levels": {
+    "smoke": {
+      "name": "冒烟测试 L0",
+      "purpose": "模型能否正常作答。每次启动服务后跑,<2 分钟。",
+      "per_dim": {
+        "D2": 4,
+        "D3": 4,
+        "D5": 4,
+        "D10": 3,
+        "D7": 0,
+        "D4": 3,
+        "D6": 3,
+        "D8": 3,
+        "D9": 0
+      },
+      "include_speed": true,
+      "speed_workloads": [
+        "short"
+      ],
+      "expected_seconds": 60,
+      "gate": "任一维度正确率为 0 则判定模型不可用",
+      "max_ctx": 8192,
+      "per_dim_note": "0 = 不测"
+    },
+    "canary": {
+      "name": "灰测 L1",
+      "purpose": "量化/参数/版本变动后的回归检测。分层抽样,与原配置基线比对。",
+      "per_dim": {
+        "D2": 25,
+        "D3": 30,
+        "D5": 25,
+        "D10": 15,
+        "D7": 6,
+        "D4": 12,
+        "D6": 10,
+        "D8": 10,
+        "D9": 4
+      },
+      "include_speed": true,
+      "speed_workloads": [
+        "short",
+        "medium"
+      ],
+      "expected_seconds": 900,
+      "gate": "任一维度相对基线下降 >8 个百分点则告警",
+      "regression_threshold_pp": 8.0,
+      "max_ctx": 16384
+    },
+    "full": {
+      "name": "全量 L2",
+      "purpose": "完整评测,出正式成绩与排行榜。",
+      "per_dim": {
+        "D2": -1,
+        "D3": -1,
+        "D5": -1,
+        "D10": -1,
+        "D7": -1,
+        "D4": -1,
+        "D6": -1,
+        "D8": -1,
+        "D9": -1
+      },
+      "per_dim_note": "-1 = 全部;0 = 不测",
+      "include_speed": true,
+      "speed_workloads": [
+        "short",
+        "medium",
+        "long"
+      ],
+      "repeats": 3,
+      "expected_seconds": 7200,
+      "max_ctx": 65536
+    }
+  },
+  "sampling": {
+    "method": "stratified-by-subcat",
+    "seed": 20261010,
+    "note": "按子类分层抽样,保证覆盖;固定种子保证同一子集可复现"
+  }
+}

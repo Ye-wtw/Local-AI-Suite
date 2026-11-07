@@ -1,0 +1,55 @@
+def build_dense_items(root, seeds=tuple(range(1, 7))):
+    """密集计数:20-40 个小方块,考分辨力而不是粗看。"""
+    import random
+    items = []
+    for s in seeds:
+        rng = random.Random(20261101 + 600 + s)
+        cols, rows = 8, 4
+        total = cols * rows
+        drop = rng.randint(4, 9)
+        holes = set(rng.sample(range(total), drop))
+        c = Canvas(420, 240)
+        for i in range(total):
+            if i in holes:
+                continue
+            cx = 20 + (i % cols) * 46
+            cy = 20 + (i // cols) * 50
+            c.rect(cx, cy, cx + 34, cy + 38, (30, 30, 30))
+        fname = os.path.join(root, "d11_dense_%02d.png" % s)
+        c.save(fname)
+        items.append({
+            "id": "d11_dense_%02d" % s, "dim": "D11", "subcat": "dense",
+            "image": fname, "answer": str(total - drop),
+            "question": "图中有多少个黑色方块?只回答数字。",
+            "expect": {"answer": str(total - drop), "scoring": "exact count"},
+        })
+    return items
+
+
+def build_occlusion_items(root, seeds=tuple(range(1, 7))):
+    """遮挡判断:两个色块重叠,问哪个画在上层(靠前)。"""
+    import random
+    items = []
+    for s in seeds:
+        rng = random.Random(20261101 + 700 + s)
+        front_is_red = rng.random() < 0.5
+        RED, BLUE = (220, 40, 40), (40, 110, 220)
+        c = Canvas(400, 200)
+        if front_is_red:
+            c.rect(60, 40, 260, 160, BLUE)
+            c.rect(150, 70, 350, 180, RED)
+        else:
+            c.rect(150, 70, 350, 180, BLUE)
+            c.rect(60, 40, 260, 160, RED)
+        fname = os.path.join(root, "d11_occl_%02d.png" % s)
+        c.save(fname)
+        front = "红" if front_is_red else "蓝"
+        items.append({
+            "id": "d11_occl_%02d" % s, "dim": "D11", "subcat": "occlusion",
+            "image": fname, "answer": front,
+            "question": "图中红蓝两个方块重叠,哪个画在上层(也就是靠前)?只回答颜色名(红/蓝)。",
+            "expect": {"answer": front, "scoring": "exact color word"},
+        })
+    return items
+
+

@@ -1,180 +1,44 @@
-<div align="center">
-  <img src="assets/llamarig.ico" width="88" alt="Llama Rig logo" />
+# Local AI Suite
 
-  <h1>Llama Rig</h1>
+本地 AI 工具集：在一台机器上既把模型**跑起来**，也把模型**量清楚**。
 
-  <p>
-    本地多引擎 LLM 推理控制台 — 一键切换 llama.cpp / KVMem / PrismML，显存守卫防爆显存。
-    <br />
-    启动服务、配置模型、查看日志、直接聊天和接入 OpenAI Compatible 客户端，都放在一个窗口里。
-  </p>
-
-  <p>
-    <img alt="Windows" src="https://img.shields.io/badge/Windows-10%20%2F%2011-506f51?style=flat-square" />
-    <img alt="Electron" src="https://img.shields.io/badge/Electron-41-506f51?style=flat-square" />
-    <img alt="llama.cpp" src="https://img.shields.io/badge/llama.cpp-local-506f51?style=flat-square" />
-    <img alt="License" src="https://img.shields.io/badge/license-MIT-151713?style=flat-square" />
-  </p>
-</div>
-
-![Llama Rig preview](docs/desktop-preview.svg)
-
-## 亮点
-
-| 功能 | 说明 |
-| --- | --- |
-| 稳定预设生成 | 拿到陌生模型不用猜参数：读它自己的 GGUF 头部（层数、训练上下文、KV 头数）加本机真实显存，算出一份「一定能起来」的预设，并把每条依据摊开给你看 |
-| 本地直连 | 直接启动 llama.cpp 原版目录里的 `llama-server.exe`，不强依赖额外启动器 |
-| OpenAI 兼容 | 默认提供 `http://127.0.0.1:8080/v1`，可接入 OpenClaw、Claude Code 等客户端 |
-| 桌面聊天 | 内置网页端风格聊天页面，支持流式回复、历史对话、搜索和消息操作 |
-| 附件入口 | 支持图片、文本、PDF 等附件入口，图片可在聊天里预览 |
-| 模型信息 | 点击模型标签即可查看当前模型、上下文、GPU 层数和运行参数 |
-| 终端日志 | 在客户端里查看 llama.cpp 输出，方便排查启动和推理问题 |
-| 托盘后台 | 关闭窗口后隐藏到系统托盘，服务继续后台运行 |
-| 参数配置 | 支持模型路径、上下文、采样、GPU 层数、线程和批处理参数 |
-
-## 下载
-
-发布包放在 GitHub Releases 页面：
-
-[打开 Releases](https://github.com/Ye-wtw/Llama-Rig/releases)
-
-每次发布提供两种形态，**内容完全相同**，选一个即可：
-
-| 文件 | 特点 | 适合 |
+| 子项目 | 是什么 | 从哪开始 |
 | --- | --- | --- |
-| `Llama-Rig-<版本号>.zip` | **解压版**。解压到任意目录，双击里面的 `Llama Rig.exe`。**全程不碰系统临时目录** | 推荐；C 盘空间紧张时唯一稳妥的选择 |
-| `Llama-Rig-<版本号>.exe` | 便携单文件版。下载即双击，但首次运行会把内容解到系统临时目录（约 430 MB，位于 C 盘） | 想只留一个文件的场合 |
+| [`llama-rig/`](llama-rig/) | Windows 桌面端 LLM 推理控制台 — 一键切换 llama.cpp / KVMem / PrismML，显存守卫防爆显存，启动服务、配模型、看日志、直接聊天 | 到 [Releases](https://github.com/Ye-wtw/Local-AI-Suite/releases) 下载 `Llama-Rig-<version>.zip` 解压即用 |
+| [`model-arena/`](model-arena/) | 多维度模型能力评测 — 同一套题、同一套判分器，比较本地模型与云端 API，并找出**最适合你这台机器**的启动参数 | 见 [`model-arena/README.md`](model-arena/README.md)，纯 Python 标准库、零第三方依赖 |
 
-两者都附有同名 `.sha256` 校验文件，下载后可以核对完整性。
+两个子项目互相独立：**装 Llama Rig 不需要 Python，跑 Model Arena 不需要 Electron。**
 
-> **为什么有解压版？**
-> 便携版运行时必须在 `%TEMP%` 里解出整个应用（约 344 MB，峰值约 430 MB）。
-> C 盘空间不够时会失败，而且报错是
-> `NSIS Error: Error writing temporary file. Make sure your temp folder is valid.`
-> —— 这句话看不出是磁盘满了，只会让人以为是权限或临时目录坏了。
-> 解压版由你自己选解压位置，没有这个限制。
+---
 
-> 首次运行会看到 Windows SmartScreen 的蓝色提示（因为没有购买代码签名证书），
-> 点「更多信息」→「仍要运行」即可。
+## 30 秒上手
 
-项目本身不包含模型文件和 llama.cpp 二进制文件，需要你本机已经有可用的 llama.cpp Windows 构建目录。
+### Llama Rig（桌面端推理控制台）
 
-## 快速开始
+到 Releases 下载 `Llama-Rig-<version>.zip`，解压到任意有空间的目录，双击里面的 `Llama Rig.exe`。
 
-1. 下载并打开 `Llama-Rig-<版本号>.exe`。
-2. 在设置里选择 llama.cpp 原文件目录，或直接选择 `llama-server.exe`。
-3. 选择你的 GGUF 模型文件。
-4. 保存配置并启动服务。
-5. 使用内置聊天，或把 `http://127.0.0.1:8080/v1` 接入 OpenAI 兼容客户端。
+- 数据和程序放在一起（不写 `%APPDATA%`、不写注册表），换机器把 `configs\` 拷过去即可；
+- 未做代码签名，首次运行会看到 SmartScreen 提示，点「更多信息」→「仍要运行」；
+- 从源码开始见 [`llama-rig/README.md`](llama-rig/README.md)。
 
-## 数据放在哪（便携版）
+### Model Arena（模型评测）
 
-这个软件是**完全便携**的：所有数据都生成在 **exe 所在的文件夹**里，
-不写 `%APPDATA%`，也不写注册表。
-
-所以首次双击运行后，你会看到 exe 旁边自动多出文件夹：
-
-```text
-你放 exe 的文件夹\
-├── Llama-Rig-0.8.1.exe     ← 程序本体
-├── configs\                ← 【预设目录】首次运行会自动放入一个示例预设
-│   └── 示例-通用参数.config.toml
-├── config.toml             ← 主设置（llama.cpp 路径、模型路径等），保存设置后生成
-├── desktop-state.json      ← 窗口位置、界面状态，运行后生成
-└── userdata\               ← 界面缓存（浏览器内核的 profile，删掉会自动重建）
+```bash
+cd model-arena
+python runner/setup.py            # 检查环境，自动生成配置；不需要 GPU 也能试用
+python runner/run_all.py --endpoint local --preset-id my-preset
 ```
 
-### 预设存放位置与用法
+---
 
-**预设就存在 exe 旁边的 `configs\` 文件夹里**，一个预设对应一个 `.config.toml` 文件。
+## 仓库结构
 
-| 你想做的事 | 怎么做 |
-| --- | --- |
-| 用自带示例 | 首次运行后列表里就有 `示例-通用参数`，可直接套用 |
-| 自己存一个 | 在界面里调好参数后保存为预设，文件会出现在 `configs\` |
-| 备份预设 | 复制整个 `configs\` 文件夹 |
-| 换台机器 / 重装 | 把 `configs\` 拷到新位置 exe 旁边即可 |
-| 收下别人的预设 | 让对方把 `.config.toml` 发给你，放进 `configs\` |
-
-关于自带的那个示例预设，有一点值得说明：它**只含参数、不含路径**
-（`model` 和 `llama_server_path` 都是空的）。空路径的含义是「沿用你当前的选择」，
-不会把你已经选好的模型或 llama.cpp 路径清空 —— 所以它可以安全地当作调节参数的起点。
-
-### 想换地方放 / 想清理
-
-- **整个文件夹可以随意移动、复制到 U 盘**，因为数据跟着 exe 走，路径不写死。
-- ⚠️ **删除 `configs\` 会连你的预设一起删掉**，删之前先备份。
-- `userdata\` 可以随时删除，下次启动会自动重建（只是会丢失界面缓存）。
-
-## 开发运行
-
-```powershell
-npm install
-npm start
+```
+.github/workflows/release.yml   Llama Rig 的打包发布（push 标签 v* 触发）
+llama-rig/                      Electron 桌面端（推理控制台）
+model-arena/                    Python 评测系统（题库 + 判分器 + 参数扫描）
 ```
 
-## 打包
+## 许可
 
-```powershell
-npm run dist
-```
-
-打包产物会生成在 `dist/`，该目录不会提交到 Git。
-
-## 当前限制 / Roadmap
-
-- 当前主要面向 Windows 10 / 11。Ubuntu、macOS 等跨平台版本需要继续适配路径、进程管理、托盘和打包配置。
-- 项目不内置 llama.cpp、模型文件、显卡驱动或 CUDA / Vulkan 运行库，需要用户本机已有可用环境。
-- 图片入口可以预览并发送图片，但真正理解图片需要视觉模型和对应的 `mmproj` 多模态投影文件。
-- 普通文本模型不能因为上传了图片就自动具备看图能力；视频理解当前暂未支持。
-- ngram、多 GPU、speculative decoding 等高级能力可以先通过“自定义附加参数”传给本机 `llama-server`，具体是否生效取决于本地 llama.cpp 版本。
-- 如果桌面端速度和原生命令行差异明显，请先复制“最终启动命令”，对比 GPU layers、上下文、batch、ubatch、threads 等参数。
-- Qwen 等 thinking 模型是否输出 `<think>` 内容取决于模型、模板和 `chat_template_kwargs`；桌面端会解析并折叠展示返回中的 `<think>...</think>`。
-
-## 项目结构
-
-```text
-assets/            图标和托盘图标
-desktop/           Electron 主进程、预加载脚本与纯逻辑模块
-  configs/         随包示例预设（首次运行时播种到用户目录）
-  lib/             预设策略、日志管线、运行期策略等纯逻辑
-renderer/          桌面端界面
-test/              测试（node --test）
-tools/             界面文案扫描工具
-spec/ docs/        设计规格与验收记录
-prototype/         早期界面原型（静态 HTML，供对照）
-scripts/           图标生成脚本
-```
-
-## 开源说明
-
-本仓库只包含桌面端源码，不包含：
-
-- llama.cpp 二进制文件
-- GGUF / GGML 模型文件
-- 打包生成的 exe
-- 本地配置文件和运行日志
-
-## 来源与许可
-
-本项目是 **[Qiao-920/llama-cpp-desktop](https://github.com/Qiao-920/llama-cpp-desktop)
-v0.6.14**（MIT 许可）的**改造版**。原项目是一个给 Windows 本地 llama.cpp 用的桌面控制面板；
-本改造在它之上增加了预设管理、引擎切换、显存守卫等能力（见下）。
-
-**哪些是上游的、哪些是本改造的**——看仓库时别搞混：
-
-| 内容 | 来源 |
-| --- | --- |
-| 基础应用（配置读写、启动停止、聊天、终端日志、设置页） | 上游 v0.6.14 |
-| `docs/superpowers/plans/2026-07-*.md`、`docs/superpowers/specs/`、`spec/` | **上游作者的工程文档**，随源码一起进来，不是本次改造写的 |
-| 上游里的"规格稳定 / 产品化 / 三轮修复"（2026-07） | 上游作者的工作 |
-| 预设管理（7 个动作）、35 项参数编辑器、引擎切换、引擎能力屏蔽、显存守卫、思考预算护栏、预设元信息、页签排序、附加参数校验 | **本改造新增** |
-
-## License
-
-MIT（见 [LICENSE](LICENSE)）。
-
-上游同样采用 MIT，其版权声明与本仓库 LICENSE 中的声明一致。
-按 MIT 要求，原版权声明与许可声明均予保留。
-
+MIT，见 [`LICENSE`](LICENSE)。两个子项目各自也带一份 LICENSE，含义相同。

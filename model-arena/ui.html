@@ -1,0 +1,1909 @@
+<!DOCTYPE html>
+<html lang="zh-CN"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Model Arena</title>
+<style>
+:root{--bg:#0b0f16;--bg2:#0e131c;--panel:#141a24;--panel2:#1a2130;--panel3:#212a3a;
+--line:#2a3446;--line2:#374257;--fg:#d6dee9;--dim:#7d8b9e;--dim2:#5c6979;
+--acc:#4a9eff;--acc2:#2d7fd6;--ok:#3fb950;--warn:#d29922;--bad:#f85149;
+--gold:#e3b341;--purple:#a371f7}
+*{box-sizing:border-box}
+body{margin:0;background:linear-gradient(180deg,#0b0f16 0%,#0d1219 100%);
+color:var(--fg);font:13px/1.6 -apple-system,"Segoe UI","Microsoft YaHei",sans-serif;
+min-height:100vh}
+::-webkit-scrollbar{width:9px;height:9px}
+::-webkit-scrollbar-track{background:var(--bg2)}
+::-webkit-scrollbar-thumb{background:var(--line2);border-radius:5px}
+::-webkit-scrollbar-thumb:hover{background:var(--dim2)}
+
+header{padding:13px 22px;border-bottom:1px solid var(--line);
+background:rgba(20,26,36,.92);backdrop-filter:blur(10px);
+position:sticky;top:0;z-index:20;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+h1{font-size:15px;margin:0;font-weight:650;letter-spacing:.3px;
+background:linear-gradient(90deg,#4a9eff,#a371f7);-webkit-background-clip:text;
+-webkit-text-fill-color:transparent}
+.pill{font-size:11px;padding:3px 9px;border-radius:11px;background:var(--panel2);
+border:1px solid var(--line);color:var(--dim);white-space:nowrap}
+.pill.ok{color:var(--ok);border-color:rgba(63,185,80,.4);background:rgba(63,185,80,.08)}
+.pill.bad{color:var(--bad);border-color:rgba(248,81,73,.4);background:rgba(248,81,73,.08)}
+.pill.warn{color:var(--warn);border-color:rgba(210,153,34,.4);background:rgba(210,153,34,.08)}
+.spacer{flex:1}
+
+main{padding:18px 22px;max-width:1500px;margin:0 auto}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:10px;
+padding:16px 18px;margin-bottom:14px;box-shadow:0 1px 3px rgba(0,0,0,.25)}
+.card h2{font-size:13px;margin:0 0 14px;color:var(--fg);font-weight:620;
+display:flex;align-items:center;gap:8px}
+.card h2::before{content:"";width:3px;height:14px;border-radius:2px;
+background:linear-gradient(180deg,var(--acc),var(--purple))}
+
+label{display:block;font-size:11px;color:var(--dim);margin-bottom:5px;font-weight:500}
+select,input,textarea{background:var(--bg2);color:var(--fg);border:1px solid var(--line);
+border-radius:6px;padding:7px 11px;font-size:12px;font-family:inherit;
+transition:border-color .15s,box-shadow .15s}
+select:hover,input:hover{border-color:var(--line2)}
+select:focus,input:focus,textarea:focus{outline:none;border-color:var(--acc);
+box-shadow:0 0 0 3px rgba(74,158,255,.12)}
+input::placeholder{color:var(--dim2)}
+
+button{background:var(--panel2);color:var(--fg);border:1px solid var(--line);
+border-radius:6px;padding:7px 15px;font-size:12px;cursor:pointer;font-family:inherit;
+font-weight:500;transition:all .15s}
+button:hover:not(:disabled){border-color:var(--acc);color:var(--acc);
+background:rgba(74,158,255,.08)}
+button:active:not(:disabled){transform:translateY(1px)}
+button:disabled{opacity:.4;cursor:not-allowed}
+button.primary{background:linear-gradient(180deg,#4a9eff,#2d7fd6);
+color:#fff;border-color:#2d7fd6;font-weight:600;
+box-shadow:0 1px 3px rgba(74,158,255,.3)}
+button.primary:hover:not(:disabled){background:linear-gradient(180deg,#5aa8ff,#3a8ce0);
+color:#fff;box-shadow:0 2px 8px rgba(74,158,255,.4)}
+button.danger{border-color:rgba(248,81,73,.5);color:var(--bad)}
+button.danger:hover:not(:disabled){background:rgba(248,81,73,.12);color:var(--bad)}
+button.ghost{background:transparent;border-color:transparent;color:var(--dim);padding:5px 9px}
+button.ghost:hover:not(:disabled){background:var(--panel2);color:var(--fg);border-color:var(--line)}
+button.sm{padding:4px 10px;font-size:11px}
+
+.row{display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end}
+.field{min-width:130px}
+
+.seg{display:inline-flex;background:var(--bg2);border:1px solid var(--line);
+border-radius:7px;padding:2px;gap:2px}
+.seg button{border:none;background:transparent;padding:5px 14px;border-radius:5px;
+font-size:12px;color:var(--dim)}
+.seg button:hover{background:var(--panel2);color:var(--fg)}
+.seg button.on{background:var(--acc);color:#fff;font-weight:600}
+.seg button.on:hover{background:var(--acc)}
+
+table{width:100%;border-collapse:collapse;font-size:12px}
+th{text-align:left;color:var(--dim);font-weight:500;padding:8px 10px;
+border-bottom:1px solid var(--line);white-space:nowrap;font-size:11px;
+text-transform:uppercase;letter-spacing:.4px}
+td{padding:8px 10px;border-bottom:1px solid rgba(42,52,70,.5)}
+tbody tr{transition:background .12s}
+tbody tr:hover td{background:rgba(33,42,58,.5)}
+tbody tr:last-child td{border-bottom:none}
+.num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+
+.bar{height:5px;background:var(--bg2);border-radius:3px;overflow:hidden;
+min-width:60px;display:inline-block;vertical-align:middle;margin-right:6px}
+.bar>i{display:block;height:100%;border-radius:3px;transition:width .3s}
+.bar>i.ok{background:linear-gradient(90deg,#3fb950,#4fd060)}
+.bar>i.mid{background:linear-gradient(90deg,#4a9eff,#6fb0ff)}
+.bar>i.warn{background:linear-gradient(90deg,#d29922,#e8b13a)}
+.bar>i.bad{background:linear-gradient(90deg,#f85149,#ff6b63)}
+
+.delta{font-variant-numeric:tabular-nums;font-size:11px;padding:1px 5px;border-radius:3px}
+.delta.up{color:var(--ok);background:rgba(63,185,80,.1)}
+.delta.down{color:var(--bad);background:rgba(248,81,73,.1)}
+.delta.same{color:var(--dim2)}
+
+.muted{color:var(--dim)}
+.empty{padding:32px;text-align:center;color:var(--dim2);font-size:12px}
+
+.modal-bg{position:fixed;inset:0;background:rgba(5,8,12,.72);backdrop-filter:blur(3px);
+display:none;align-items:center;justify-content:center;z-index:100;padding:20px}
+.modal-bg.on{display:flex}
+.modal{background:var(--panel);border:1px solid var(--line2);border-radius:12px;
+padding:22px 24px;width:100%;max-width:560px;max-height:88vh;overflow:auto;
+box-shadow:0 20px 60px rgba(0,0,0,.6)}
+.modal h3{margin:0 0 6px;font-size:15px;font-weight:620}
+.modal .sub{color:var(--dim);font-size:12px;margin-bottom:18px}
+.modal .field{margin-bottom:14px;min-width:100%}
+.modal input,.modal select{width:100%}
+.modal .hint{font-size:11px;color:var(--dim2);margin-top:4px}
+.modal .actions{display:flex;gap:10px;justify-content:flex-end;margin-top:20px;
+padding-top:16px;border-top:1px solid var(--line)}
+
+.kv{display:grid;grid-template-columns:auto 1fr;gap:6px 14px;font-size:12px}
+.kv dt{color:var(--dim);white-space:nowrap}
+.kv dd{margin:0;font-variant-numeric:tabular-nums}
+
+.keyhint{display:none;margin-top:12px;font-size:12px;padding:10px 12px;
+border:1px solid rgba(210,153,34,.35);border-radius:7px;
+background:rgba(210,153,34,.07);color:var(--warn)}
+.keyhint code{background:var(--bg2);padding:2px 6px;border-radius:4px;
+color:var(--acc);font-size:11px}
+
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(80px);
+background:var(--panel3);border:1px solid var(--line2);border-radius:8px;
+padding:11px 20px;font-size:12px;box-shadow:0 8px 24px rgba(0,0,0,.5);
+opacity:0;transition:all .25s;z-index:200;pointer-events:none;max-width:80vw}
+.toast.on{transform:translateX(-50%) translateY(0);opacity:1}
+.toast.err{border-color:rgba(248,81,73,.5);color:var(--bad)}
+
+.tag{font-size:10px;padding:1px 6px;border-radius:4px;background:var(--panel3);
+color:var(--dim);border:1px solid var(--line);white-space:nowrap;display:inline-block}
+.tag.ok{color:var(--ok);border-color:rgba(63,185,80,.35);background:rgba(63,185,80,.08)}
+.tag.bad{color:var(--bad);border-color:rgba(248,81,73,.35);background:rgba(248,81,73,.08)}
+.tag.warn{color:var(--warn);border-color:rgba(210,153,34,.35);background:rgba(210,153,34,.08)}
+
+@media(max-width:760px){
+  main{padding:12px}
+  .card{padding:13px 14px}
+  header{padding:10px 14px}
+}
+#tabs{display:flex;gap:2px;padding:0 22px;border-bottom:1px solid var(--line);
+background:var(--bg2);position:sticky;top:48px;z-index:19}
+.tab{background:transparent;border:none;border-bottom:2px solid transparent;
+border-radius:0;padding:11px 18px;color:var(--dim);font-size:13px;font-weight:500;
+cursor:pointer;transition:all .15s;margin-bottom:-1px}
+.tab:hover{color:var(--fg);background:rgba(74,158,255,.06)}
+.tab.on{color:var(--acc);border-bottom-color:var(--acc);background:transparent}
+.pane{display:none}
+.pane.on{display:block}
+.tps{font-variant-numeric:tabular-nums;font-weight:600}
+.tps.hi{color:var(--ok)}
+.tps.mid{color:var(--acc)}
+.tps.lo{color:var(--warn)}
+.tps.vlo{color:var(--bad)}
+.badge{font-size:10px;padding:1px 7px;border-radius:9px;font-weight:600}
+.badge.best{background:rgba(63,185,80,.15);color:var(--ok)}
+.badge.fast{background:rgba(74,158,255,.15);color:var(--acc)}
+.badge.ok{background:rgba(125,139,158,.15);color:var(--dim)}
+.params{font-size:11px;color:var(--dim2);line-height:1.6}
+.params b{color:var(--dim);font-weight:500}
+details summary{cursor:pointer;color:var(--acc);font-size:11px;padding:4px 0}
+details[open] summary{margin-bottom:6px}
+
+/* 预设表:参数内联、双实测序列、在跑高亮 */
+.scrolly{max-height:calc(100vh - 362px);overflow:auto;border:1px solid var(--line);
+border-radius:8px;margin-top:4px}
+.scrolly thead th{position:sticky;top:0;background:var(--panel);z-index:2}
+.pchip{display:inline-block;font-size:10.5px;line-height:1.35;padding:0 5px;margin:0 4px 3px 0;
+border-radius:4px;background:var(--bg2);border:1px solid var(--line);color:var(--fg);
+font-variant-numeric:tabular-nums;white-space:nowrap}
+.pchip i{color:var(--dim2);font-style:normal;margin-right:3px}
+.pname{font-weight:600;font-size:12px}
+.pmuted{font-size:10.5px;color:var(--dim2);margin-top:1px;line-height:1.4;
+overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:520px}
+.scrolly td{padding:7px 10px;vertical-align:top}
+tr.live td{background:rgba(63,185,80,.055)}
+tr.live:hover td{background:rgba(63,185,80,.09)}
+.spd{font-variant-numeric:tabular-nums;font-weight:600;font-size:13px}
+.spd .sub{display:block;font-weight:400;font-size:10.5px;color:var(--dim2)}
+th.grp{border-left:1px solid var(--line);text-align:center}
+td.grp{border-left:1px solid rgba(42,52,70,.6)}
+th.grp .d{display:block;font-size:9.5px;color:var(--dim2);text-transform:none;letter-spacing:0}
+.runningbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;padding:9px 12px;
+border-radius:8px;margin-bottom:10px;font-size:12px;border:1px solid var(--line);
+background:var(--bg2)}
+.runningbar.on{border-color:rgba(63,185,80,.4);background:rgba(63,185,80,.07)}
+.runningbar.orphan{border-color:rgba(210,153,34,.4);background:rgba(210,153,34,.07)}
+
+/* 批量队列 */
+/* 两栏等高:align-items:start 会让较矮的一栏不拉伸,下方留出大片空白
+   (实测右栏"选套件"比左栏高约 340px,左栏下面整个空掉)。
+   改成 stretch,再用 flex 让列表撑满剩余高度。 */
+.qcols{display:grid;grid-template-columns:1.15fr 1fr;gap:14px;align-items:stretch}
+.qbox{border:1px solid var(--line);border-radius:8px;background:var(--bg2);padding:10px 12px;
+display:flex;flex-direction:column;min-height:0}
+.qbox h3{font-size:12px;margin:0 0 8px;color:var(--fg);font-weight:600;
+display:flex;align-items:center;gap:6px}
+/* 列表自己撑满 qbox 剩下的空间,而不是固定 280px —— 栏高了就跟着长,
+   两栏视觉上才不会一长一短。 */
+.qlist{flex:1;min-height:200px;max-height:520px;overflow:auto;margin:0 -4px}
+.qitem{display:flex;align-items:center;gap:7px;padding:4px 5px;border-radius:5px;
+cursor:pointer;font-size:11.5px;line-height:1.5}
+.qitem:hover{background:var(--panel2)}
+.qitem input{flex:none;margin:0}
+.qitem .nm{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.qitem .en{flex:none;font-size:9.5px;color:var(--dim2)}
+.order{display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;
+border-radius:4px;background:var(--acc);color:#fff;font-size:10px;font-weight:700;flex:none}
+.ordempty{width:18px;height:18px;flex:none}
+.qbtn{display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;
+padding:0;font-size:11px;line-height:1;border-radius:4px}
+.qpick{display:flex;flex-wrap:wrap;gap:5px;margin-top:6px}
+.qchip{font-size:10.5px;padding:2px 7px;border-radius:11px;border:1px solid var(--line);
+background:var(--panel);cursor:pointer;color:var(--dim)}
+.qchip.on{border-color:var(--acc);color:var(--acc);background:rgba(74,158,255,.1)}
+.qchip .c{color:var(--dim2);margin-left:4px}
+.qrt td{padding:5px 8px}
+.qwarn{font-size:11px;color:var(--warn);margin-top:8px;line-height:1.5}
+
+/* 队列套件:分组卡片 */
+.qgrp{margin-bottom:12px}
+.qgh{font-size:11px;color:var(--dim);margin-bottom:6px;font-weight:600;letter-spacing:.3px}
+.qtiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(168px,1fr));gap:7px}
+.qtile{background:var(--card2,#212533);border:1px solid var(--line,#2b3040);border-radius:8px;
+padding:8px 10px;cursor:pointer;transition:.12s}
+.qtile:hover{border-color:var(--acc,#4a9eff)}
+.qtile.on{border-color:var(--acc,#4a9eff);background:rgba(74,158,255,.1)}
+.qt-n{font-weight:600;font-size:12px;display:flex;justify-content:space-between;gap:6px}
+.qck{width:12px;height:12px;border-radius:3px;border:1.5px solid var(--dim2,#5d6478);flex:0 0 auto}
+.qtile.on .qck{background:var(--acc,#4a9eff);border-color:var(--acc,#4a9eff)}
+.qt-m{color:var(--dim,#8b93a7);font-size:10.5px;margin-top:3px}
+.src{font-size:9.5px;padding:0 4px;border-radius:3px;background:rgba(74,158,255,.18);color:var(--acc,#4a9eff)}
+/* 队列预设:按模型折叠 */
+.qmodel{margin-bottom:6px;border:1px solid var(--line,#2b3040);border-radius:8px;overflow:hidden}
+.qmodel-h{padding:7px 10px;cursor:pointer;background:var(--card2,#212533);font-size:12px;
+display:flex;align-items:center;gap:6px}
+.qmodel-h:hover{background:rgba(74,158,255,.08)}
+.qmodel-b{background:rgba(0,0,0,.12)}
+.perf-head{background:var(--card2,#212533)}
+.perf-head:hover{background:rgba(74,158,255,.08)}
+.pf-caret{color:var(--acc,#4a9eff);font-weight:700;margin-right:3px}
+.pf-sum{color:var(--dim,#8b93a7);font-size:11px;font-weight:400;margin-left:8px}
+.perf-inner{width:100%;border-collapse:collapse;font-size:11.5px;background:rgba(0,0,0,.15)}
+.perf-inner th,.perf-inner td{padding:4px 9px;border-bottom:1px solid var(--line,#2b3040)}
+.perf-inner th{font-size:10.5px;color:var(--dim2,#5d6478)}
+.perf-inner td:first-child{padding-left:26px}
+.have{font-size:10.5px;margin-top:4px;color:var(--ok,#3ecf8e)}
+.have.none{color:var(--dim2,#5d6478)}
+
+.runcard{display:grid;grid-template-columns:1fr auto;gap:12px;align-items:center;
+background:var(--card2,#212533);border:1px solid var(--line,#2b3040);border-radius:8px;
+padding:10px 12px;margin-bottom:8px}
+.rname{font-weight:600;font-size:12px}
+.rmeta{color:var(--dim,#8b93a7);font-size:11px;margin-top:3px}
+.acts{display:flex;gap:6px}
+</style>
+</head><body>
+
+<header>
+  <h1>Model Arena</h1>
+  <span class="pill" id="p-api">连接中…</span>
+  <span class="pill" id="p-jv">—</span>
+  <span class="spacer"></span>
+  <span class="pill" id="p-time">—</span>
+</header>
+<nav id="tabs">
+  <button class="tab on" data-tab="run">▸ 跑评测</button>
+  <button class="tab" data-tab="board">▤ 榜单</button>
+  <button class="tab" data-tab="presets">⚡ 预设与速度</button>
+  <button class="tab" data-tab="queue">☰ 批量队列</button>
+  <button class="tab" data-tab="runs">◷ 运行记录</button>
+  <button class="tab" data-tab="models">⚙ 模型管理</button>
+</nav>
+
+<main>
+<div class="pane on" id="pane-run"><div class="card">
+    <h2>跑评测</h2>
+    <div class="row">
+      <div class="field">
+        <label>被测模型</label>
+        <select id="sel-target" style="min-width:250px"><option>加载中…</option></select>
+      </div>
+      <div class="field">
+        <label>套件</label>
+        <select id="sel-suite">
+          <option value="smoke">smoke · 24 题 · 秒级（先用它验链路）</option>
+          <option value="mcq">mcq · D2 选择 · 552 题</option>
+          <option value="math">math · D3 数学 · 436 题</option>
+          <option value="code">code · D4 代码 · 80 题</option>
+          <option value="instruction">instruction · D5 指令 · 401 题</option>
+          <option value="agent">agent · D6 工具调用 · 147 题</option>
+          <option value="longctx">longctx · D7 长上下文 · 120 题</option>
+          <option value="reliability">reliability · D8 抗幻觉 · 100 题</option>
+          <option value="realworld">realworld · D9 实战 · 110 题</option>
+          <option value="chess">chess · D10 棋类 · 71 题</option>
+          <option value="compression">compression · D11 压缩 · 9 题</option>
+          <option value="dynamic">dynamic · D12 多轮 · 8 题</option>
+          <option value="public">public · 2037 题 · 公开基准</option>
+          <option value="lcb">lcb · 175 题 · 竞赛编程</option>
+          <option value="vision">vision · 多模态（需 mmproj）</option>
+          <option value="canary">canary · 137 题 · 约 0.55 元</option>
+          <option value="full">full · 2017 题 · 自建全量</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>限制题数</label>
+        <input id="inp-limit" type="number" min="1" style="width:100px" placeholder="不限">
+      </div>
+      <button class="primary" id="btn-start">开始评测</button>
+      <button class="danger" id="btn-stop" disabled>停止</button>
+    </div>
+    <div id="key-hint" class="keyhint"></div>
+  </div>
+
+  <div class="card">
+    <h2>进度</h2>
+    <div id="prog"></div>
+  </div>
+
+  </div>
+<div class="pane" id="pane-board"><div class="card">
+    <h2>榜单</h2>
+    <div class="row" style="margin-bottom:14px">
+      <div class="seg">
+        <button id="mode-rel" class="on">相对对比</button>
+        <button id="mode-abs">绝对分数</button>
+      </div>
+      <div class="field" id="refrow">
+        <label style="margin-bottom:4px">对比基准</label>
+        <select id="refmodel" style="min-width:190px"></select>
+      </div>
+      <span class="muted" id="cmp-note" style="font-size:11px;padding-bottom:8px"></span>
+    </div>
+    <div id="board"></div>
+  </div>
+
+  </div>
+<div class="pane" id="pane-presets">
+  <div class="card">
+    <h2>本地预设 · 识别 / 参数 / 实测速度 / 在跑状态
+      <span class="spacer"></span>
+      <button class="sm" id="btn-prescan">重新扫描</button>
+    </h2>
+    <div class="muted" style="font-size:11px;margin-bottom:10px" id="preset-src"></div>
+    <div id="preset-running"></div>
+    <div id="presets"></div>
+  </div>
+</div>
+<div class="pane" id="pane-queue">
+  <div class="card">
+    <h2>批量队列 · 多预设顺序执行
+      <span class="spacer"></span>
+      <button class="sm" id="btn-qreport">出报告</button>
+      <button class="sm" id="btn-qrefresh">刷新状态</button>
+    </h2>
+    <div class="muted" style="font-size:11px;margin-bottom:12px">
+      选预设 → 点编号确定顺序 → 选套件 → 开始。
+      <b>顺序就是执行顺序</b>（显存最紧的排前面，失败时省时间）。每套跑完会起下套，失败的记下原因继续跑。
+    </div>
+
+    <div class="qcols">
+      <div class="qbox">
+        <h3>① 选预设 <span class="muted" style="font-weight:400;font-size:10px" id="q-preset-count"></span></h3>
+        <input id="q-search" placeholder="筛选…" style="width:100%;margin-bottom:8px;padding:5px 9px">
+        <div class="qlist" id="q-presets"></div>
+      </div>
+      <div class="qbox">
+        <h3>② 选套件 <span class="muted" style="font-weight:400;font-size:10px" id="q-suite-count"></span></h3>
+        <div class="qpickset" id="q-suites"></div>
+      <div class="row" style="display:flex;gap:7px;margin-top:9px;flex-wrap:wrap">
+        <button class="ghost sm" id="q-allsuit">全选</button>
+        <button class="ghost sm" id="q-nonesuit">清空</button>
+        <button class="ghost sm" id="q-gapsuit" title="只勾选没跑过、或没跑全的套件">只补未跑的题</button>
+        <!-- 一键全量:只勾 11 个维度套件,不掺 smoke/canary/lcb/public。
+             那些是体检或外部基准,和"跑完整一轮能力评测"不是一回事。 -->
+        <button class="ghost sm" id="q-fulldim" title="勾选全部 11 个维度套件(不含体检与外部基准)">一键全量</button>
+      </div>
+        <div style="margin-top:12px">
+          <label>限制题数（留空=全量）</label>
+          <input id="q-limit" type="number" min="1" placeholder="不限" style="width:110px">
+        </div>
+        <div class="row" style="margin-top:12px">
+          <button class="primary" id="btn-qstart">开始批量</button>
+          <button class="danger" id="btn-qstop" disabled>停止</button>
+        </div>
+        <div id="q-total" class="muted" style="font-size:11px;margin-top:10px"></div>
+      </div>
+    </div>
+
+    <div style="margin-top:16px">
+      <h3 style="font-size:12px;margin:0 0 8px">执行进度</h3>
+      <div id="q-progress"></div>
+    </div>
+  </div>
+  <div class="card">
+    <h2>历史批次</h2>
+    <div id="q-history"></div>
+  </div>
+</div>
+<div class="pane" id="pane-runs"><div class="card">
+    <h2>运行记录 <span class="muted" style="font-weight:400;font-size:11px">最近 30 条</span></h2>
+    <div id="runs"></div>
+  </div>
+
+  </div>
+<div class="pane" id="pane-models"><div class="card">
+    <h2>模型管理
+      <span class="spacer"></span>
+      <button class="sm" id="btn-add">+ 添加模型</button>
+      <button class="sm" id="btn-scan">扫描本机</button>
+    </h2>
+    <div class="muted" style="font-size:11px;margin-bottom:12px">
+      这里是「端点」（URL + 模型名），供「跑评测」页使用。
+      本机预设（带完整启动参数的那批）在「⚡ 预设与速度」与「☰ 批量队列」里，
+      会自动起停服务——**两者不是同一个东西**。
+    </div>
+    <div id="targets"></div>
+    <div id="scan-result"></div>
+  </div>
+
+</div>
+</main>
+
+<div class="modal-bg" id="modal">
+  <div class="modal">
+    <h3 id="m-title">添加模型</h3>
+    <div class="sub" id="m-sub">连接中转站、自部署服务或其他兼容 OpenAI 协议的接口（云端/远程端点用这个 Tab）</div>
+    <div class="seg" style="margin-bottom:18px">
+      <button id="m-tab-api" class="on">自定义 API</button>
+      <button id="m-tab-local">本地引擎</button>
+    </div>
+
+    <div id="pane-api">
+      <div class="field">
+        <label>标识 ID</label>
+        <input id="f-id" placeholder="acme-gateway">
+        <div class="hint">小写字母开头，用于区分不同提供商</div>
+      </div>
+      <div class="field">
+        <label>显示名称</label>
+        <input id="f-label" placeholder="我的中转站">
+      </div>
+      <div class="field">
+        <label>API 地址</label>
+        <input id="f-url" placeholder="https://gateway.example.com/v1">
+        <div class="hint">填到 /v1 为止，程序会自己拼 /chat/completions</div>
+      </div>
+      <div class="field">
+        <label>API 密钥</label>
+        <input id="f-key" type="password" placeholder="sk-...">
+        <div class="hint">只存在内存里，不写盘。重启服务后需重填</div>
+      </div>
+      <div class="field">
+        <label>模型名</label>
+        <input id="f-model" placeholder="deepseek-chat">
+        <div class="hint">不填则用标识 ID 代替</div>
+      </div>
+    </div>
+
+    <div id="pane-local" style="display:none">
+      <div class="qwarn" style="margin-bottom:14px">
+        ⚠ 这里手工填参数，只适合**临时起一个没有预设的模型**。
+        想测你已经调优好的配置，请用「⚡ 预设与速度」或「☰ 批量队列」——
+        预设里的参数（如 <code>--draft-tokens 2</code>、<code>--ngram-draft-tokens 31</code>）
+        在这是填不出来的，手工重填等于换了一套配置，跑出的分数不属于那套预设。
+      </div>
+      <div class="field">
+        <label>模型文件</label>
+        <select id="f-gguf"><option>先点“扫描本机”获取列表</option></select>
+      </div>
+      <div class="field">
+        <label>上下文长度</label>
+        <input id="f-ctx" type="number" value="32768">
+      </div>
+      <div class="field">
+        <label>MoE 专家放 CPU 的层数（非 MoE 留空）</label>
+        <input id="f-moe" type="number" placeholder="30">
+      </div>
+      <div class="field">
+        <label>KV 缓存精度</label>
+        <select id="f-kv">
+          <option value="q4_0">q4_0（省显存，默认）</option>
+          <option value="q8_0">q8_0</option>
+          <option value="f16">f16（最准，最占显存）</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="actions">
+      <button id="m-cancel">取消</button>
+      <button class="primary" id="m-save">添加</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+<script>
+const $ = (id) => document.getElementById(id);
+const API = location.origin;
+// 当前判分器版本:由 /api/progress 回报。运行记录里拿它比对,
+// 据此区分"这个分数还作数"和"判分口径已变、需要重跑"。
+let CUR_JUDGE = null;
+
+function esc(s) {
+  return String(s == null ? "" : s).replace(/[&<>"]/g, c =>
+    ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+}
+async function api(path, opts) {
+  const r = await fetch(API + path, opts);
+  if (!r.ok) throw new Error(path + " -> HTTP " + r.status);
+  return r.json();
+}
+const post = (p, b) => api(p, {method:"POST", headers:{"Content-Type":"application/json"},
+                               body: JSON.stringify(b || {})});
+const del = (p) => api(p, {method:"DELETE"});
+
+function pct(x) { return (x * 100).toFixed(1) + "%"; }
+function barCls(x) { return x >= 0.9 ? "ok" : x >= 0.7 ? "mid" : x >= 0.5 ? "warn" : "bad"; }
+function bar(x, w) {
+  const p = Math.max(0, Math.min(1, x)) * 100;
+  return '<span class="bar" style="width:' + (w || 62) + 'px"><i class="' + barCls(x) +
+         '" style="width:' + p + '%"></i></span>';
+}
+function toast(msg, isErr) {
+  const t = $("toast");
+  t.textContent = msg;
+  t.className = "toast on" + (isErr ? " err" : "");
+  clearTimeout(t._h);
+  t._h = setTimeout(() => { t.className = "toast"; }, 4200);
+}
+
+let targets = [];
+let pollTimer = null;
+let boardData = null;
+// 榜单排序状态。sortKey=null 表示"按后端返回的原顺序"（默认）。
+let sortKey = null, sortAsc = false;
+let cmpMode = "rel";
+let ggufList = [];
+
+// ---------- 顶栏 ----------
+async function refreshHeader() {
+  try {
+    await api("/api/health");
+    $("p-api").textContent = "API 正常";
+    $("p-api").className = "pill ok";
+  } catch (e) {
+    $("p-api").textContent = "API 离线";
+    $("p-api").className = "pill bad";
+  }
+  $("p-time").textContent = new Date().toLocaleTimeString("zh-CN");
+}
+
+// ---------- 模型 ----------
+async function loadTargets() {
+  try {
+    const d = await api("/api/targets");
+    targets = d.targets || [];
+    const sel = $("sel-target");
+    const cur = sel.value;
+    sel.innerHTML = "";
+    if (!targets.length) {
+      sel.innerHTML = '<option value="">（无模型，点右上“添加模型”）</option>';
+    } else {
+      targets.forEach(t => {
+        const o = document.createElement("option");
+        o.value = t.id;
+        const kind = t.kind === "launch" ? "自启" : "连接";
+        const miss = t.key_ok === false;
+        o.textContent = (t.label || t.id) + " [" + kind + "]" + (miss ? "  ⚠缺密钥" : "");
+        if (miss) o.style.color = "#d29922";
+        sel.appendChild(o);
+      });
+      if (cur && targets.some(t => t.id === cur)) sel.value = cur;
+    }
+    updateKeyHint();
+    renderTargets();
+  } catch (e) {
+    $("sel-target").innerHTML = '<option value="">加载失败</option>';
+  }
+}
+
+function updateKeyHint() {
+  const id = $("sel-target").value;
+  const t = targets.find(x => x.id === id);
+  const el = $("key-hint");
+  if (t && t.key_ok === false) {
+    el.innerHTML = "⚠ 这个端点需要密钥，但当前服务里没有。" +
+      '<div style="margin-top:5px;font-size:11px">' +
+      "在“模型管理 → 添加模型”里填密钥，或设置环境变量 <code>" +
+      esc(t.key_env || "API_KEY") + "</code> 后重启服务</div>";
+    el.style.display = "block";
+  } else {
+    el.style.display = "none";
+  }
+}
+
+function renderTargets() {
+  if (!targets.length) {
+    $("targets").innerHTML = '<div class="empty">还没有配置模型，点上方“添加模型”或“扫描本机”</div>';
+    return;
+  }
+  let h = '<table><thead><tr><th>ID</th><th>模式</th><th>地址 / 文件</th>' +
+          '<th>模型 / 参数</th><th>密钥</th><th></th></tr></thead><tbody>';
+  targets.forEach(t => {
+    const isL = t.kind === "launch";
+    const where = isL ? (t.model_path || "").split(/[\\/]/).pop() : (t.base_url || "");
+    const extra = isL
+      ? "ctx=" + (t.ctx || "?") + " ngl=" + (t.ngl || "?")
+      : (t.model || "?");
+    let keyCell = '<span class="tag">不需</span>';
+    if (t.key_ok === true) keyCell = '<span class="tag ok">已配置</span>';
+    else if (t.key_ok === false) keyCell = '<span class="tag warn">缺失</span>';
+    h += "<tr><td><b>" + esc(t.id) + "</b></td><td>" +
+         '<span class="tag">' + (isL ? "自启" : "连接") + "</span></td><td>" +
+         esc(where) + "</td><td>" + esc(extra) + "</td><td>" + keyCell +
+         '</td><td><button class="ghost sm" onclick="removeTarget(\'' +
+         esc(t.id) + '\')">删除</button></td></tr>';
+  });
+  h += "</tbody></table>";
+  $("targets").innerHTML = h;
+}
+
+async function removeTarget(id) {
+  if (!confirm("删除模型 " + id + "？")) return;
+  try {
+    await del("/api/target/" + encodeURIComponent(id));
+    await loadTargets();
+    toast("已删除 " + id);
+  } catch (e) { toast("删除失败：" + e.message, true); }
+}
+
+// ---------- 添加模型弹窗 ----------
+let modalTab = "api";
+
+function openModal() {
+  $("modal").className = "modal-bg on";
+  $("f-id").value = ""; $("f-label").value = "";
+  $("f-url").value = ""; $("f-key").value = ""; $("f-model").value = "";
+  setModalTab("api");
+}
+function closeModal() { $("modal").className = "modal-bg"; }
+
+function setModalTab(t) {
+  modalTab = t;
+  $("m-tab-api").className = t === "api" ? "on" : "";
+  $("m-tab-local").className = t === "local" ? "on" : "";
+  $("pane-api").style.display = t === "api" ? "block" : "none";
+  $("pane-local").style.display = t === "local" ? "block" : "none";
+  $("m-save").textContent = t === "api" ? "添加" : "添加";
+}
+
+async function saveModal() {
+  if (modalTab === "api") {
+    const id = $("f-id").value.trim();
+    const url = $("f-url").value.trim();
+    if (!id) { toast("请填标识 ID", true); return; }
+    if (!/^[a-z][a-z0-9_-]*$/.test(id)) {
+      toast("ID 要小写字母开头，只能含小写字母/数字/_/-", true); return;
+    }
+    if (!url) { toast("请填 API 地址", true); return; }
+    const body = {target: {
+      id: id, kind: "attach",
+      label: $("f-label").value.trim() || id,
+      base_url: url,
+      model: $("f-model").value.trim() || id,
+      engine: "openai", timeout: 600
+    }};
+    const k = $("f-key").value.trim();
+    if (k) body.target.api_key = k;
+    try {
+      const r = await post("/api/targets", body);
+      if (!r.ok) { toast("添加失败：" + (r.error || ""), true); return; }
+      await loadTargets();
+      closeModal();
+      toast("已添加 " + id + (r.key_in_memory ? "（密钥仅在内存）" : ""));
+    } catch (e) { toast("添加失败：" + e.message, true); }
+  } else {
+    const path = $("f-gguf").value;
+    if (!path) { toast("请先选模型文件（需先扫描）", true); return; }
+    const name = path.split(/[\\/]/).pop().replace(/\.gguf$/i, "");
+    const id = "launch-" + name.toLowerCase().replace(/[^a-z0-9]+/g, "-").slice(0, 24);
+    const moe = $("f-moe").value.trim();
+    try {
+      const r = await post("/api/targets", {target: {
+        id: id, kind: "launch", label: name, model_path: path,
+        ctx: parseInt($("f-ctx").value || "32768", 10),
+        ngl: 99,
+        cpu_moe: moe ? parseInt(moe, 10) : null,
+        kv_type: $("f-kv").value, port: 8080, engine: "llama.cpp"
+      }});
+      if (!r.ok) { toast("添加失败：" + (r.error || ""), true); return; }
+      await loadTargets();
+      closeModal();
+      toast("已添加自启模型 " + name);
+    } catch (e) { toast("添加失败：" + e.message, true); }
+  }
+}
+
+// ---------- 扫描 ----------
+async function doScan() {
+  $("btn-scan").disabled = true;
+  $("scan-result").innerHTML = '<div class="empty">扫描中…</div>';
+  try {
+    const d = await post("/api/discover", {});
+    ggufList = d.ggufs || [];
+    let h = "";
+    if ((d.ports || []).length) {
+      h += '<div style="margin-top:14px;font-size:12px;font-weight:600">在跑的服务</div>';
+      h += "<table><thead><tr><th>端口</th><th>引擎</th><th>模型</th><th></th></tr></thead><tbody>";
+      d.ports.forEach(p => {
+        h += "<tr><td>" + p.port + "</td><td>" + esc(p.engine || "?") + "</td><td>" +
+             esc((p.models || []).join(", ")) + '</td><td><button class="sm" onclick="addAttach(\'' +
+             esc(p.base_url) + '\')">添加</button></td></tr>';
+      });
+      h += "</tbody></table>";
+    } else {
+      h += '<div class="muted" style="margin-top:12px;font-size:12px">没有发现在跑的服务</div>';
+    }
+    if (ggufList.length) {
+      h += '<div style="margin-top:16px;font-size:12px;font-weight:600">本地模型文件 ' +
+           '<span class="muted">' + ggufList.length + " 个</span></div>";
+      h += "<table><thead><tr><th>大小</th><th>文件名</th><th></th></tr></thead><tbody>";
+      ggufList.slice(0, 12).forEach((g, i) => {
+        h += '<tr><td class="num">' + g.size_gb.toFixed(2) + " GB</td><td>" +
+             esc(g.name) + '</td><td><button class="sm" onclick="quickLaunch(' + i +
+             ')">添加</button></td></tr>';
+      });
+      h += "</tbody></table>";
+      if (ggufList.length > 12) {
+        h += '<div class="muted" style="font-size:11px;margin-top:6px">还有 ' +
+             (ggufList.length - 12) + " 个，用“添加模型”里的本地引擎页选择</div>";
+      }
+    }
+    $("scan-result").innerHTML = h;
+  } catch (e) {
+    $("scan-result").innerHTML = '<div class="empty">扫描失败：' + esc(e.message) + "</div>";
+  } finally { $("btn-scan").disabled = false; }
+}
+
+async function addAttach(url) {
+  try {
+    const r = await post("/api/attach", {base_url: url});
+    if (!r.ok) { toast("添加失败：" + (r.error || ""), true); return; }
+    await loadTargets();
+    toast("已添加 " + url);
+  } catch (e) { toast("添加失败：" + e.message, true); }
+}
+
+async function quickLaunch(idx) {
+  const g = ggufList[idx];
+  if (!g) return;
+  const name = g.name.replace(/\.gguf$/i, "");
+  const id = "launch-" + name.toLowerCase().replace(/[^a-z0-9]+/g, "-").slice(0, 24);
+  try {
+    const r = await post("/api/targets", {target: {
+      id: id, kind: "launch", label: name, model_path: g.path,
+      ctx: 32768, ngl: 99, cpu_moe: 30, kv_type: "q4_0", port: 8080,
+      engine: "llama.cpp"
+    }});
+    if (!r.ok) { toast("添加失败：" + (r.error || ""), true); return; }
+    await loadTargets();
+    toast("已添加 " + name + "（默认 ctx=32768 moe=30，可在弹窗里改）");
+  } catch (e) { toast("添加失败：" + e.message, true); }
+}
+
+// ---------- 评测控制 ----------
+async function startRun() {
+  const target = $("sel-target").value;
+  if (!target) { toast("先选一个模型", true); return; }
+  $("btn-start").disabled = true;
+  try {
+    const body = {suite: $("sel-suite").value, endpoint: target, tag: "ui"};
+    const lim = $("inp-limit").value;
+    if (lim) body.limit = parseInt(lim, 10);
+    const r = await post("/api/start", body);
+    if (!r.ok) { toast("启动失败：" + (r.error || ""), true); $("btn-start").disabled = false; return; }
+    toast("已启动 " + body.suite + " @ " + target);
+    $("btn-stop").disabled = false;
+    startPolling();
+  } catch (e) {
+    toast("启动失败：" + e.message, true);
+    $("btn-start").disabled = false;
+  }
+}
+
+async function stopRun() {
+  try {
+    const r = await post("/api/stop", {});
+    toast(r.ok ? "已停止" : ("停止失败：" + (r.error || "")));
+  } catch (e) { toast("停止失败：" + e.message, true); }
+  $("btn-stop").disabled = true;
+  $("btn-start").disabled = false;
+  stopPolling();
+  refreshProgress();
+}
+
+// ---------- 进度 ----------
+async function refreshProgress() {
+  try {
+    const d = await post("/api/progress", {});
+    if (d.judge_version) {
+      CUR_JUDGE = d.judge_version;
+      $("p-jv").textContent = "判分器 " + d.judge_version;
+    }
+    let h = "";
+    if (!d.running && (!d.suites || !d.suites.length)) {
+      const ec = d.exit_code;
+      let why = "";
+      if (ec === 3) why = "端点连不上 —— 本地模型服务没启动？";
+      else if (ec === 4) why = "显存不足 —— 关掉其他占 GPU 的程序";
+      else if (ec === 5) why = "需要 --yes 确认（非交互环境）";
+      else if (ec != null && ec !== 0) why = "退出码 " + ec;
+      if (why) {
+        h = '<div class="empty" style="color:var(--bad)">上次启动失败：' + esc(why) +
+            (d.started ? '<div class="muted" style="margin-top:6px;font-size:11px">' +
+             esc(d.started) + (d.endpoint ? " @ " + esc(d.endpoint) : "") + "</div>" : "") +
+            "</div>";
+      } else {
+        h = '<div class="empty">当前没有评测在跑</div>';
+      }
+      $("btn-stop").disabled = true;
+      $("btn-start").disabled = false;
+    } else {
+      h = '<div class="muted" style="margin-bottom:10px;font-size:12px">' +
+          (d.running ? '<span class="tag ok">运行中</span>' : '<span class="tag">已结束</span>') +
+          (d.suite ? " · " + esc(d.suite) : "") +
+          (d.endpoint ? " @ " + esc(d.endpoint) : "") +
+          (d.started ? " · " + esc(d.started) : "") +
+          "</div><table><thead><tr><th>套件</th><th>端点</th>" +
+          '<th class="num">已完成</th><th>最近题</th><th>状态</th></tr></thead><tbody>';
+      (d.suites || []).forEach(s => {
+        const live = (s.age_s || 999) < 120;
+        h += "<tr><td>" + esc(s.suite) + "</td><td>" + esc(s.endpoint) +
+             '</td><td class="num">' + s.done + "</td><td>" + esc(s.last_id || "—") +
+             ' <span class="' + (s.last_correct === true ? "tag ok" :
+                                   s.last_correct === false ? "tag bad" : "tag") + '">' +
+             (s.last_correct === true ? "对" : s.last_correct === false ? "错" : "?") +
+             "</span></td><td>" +
+             (live ? '<span class="tag ok">运行中</span>' :
+                     '<span class="tag">已停 ' + Math.floor((s.age_s || 0) / 60) + ' 分</span>') +
+             "</td></tr>";
+      });
+      h += "</tbody></table>";
+      if (!d.running) { $("btn-stop").disabled = true; $("btn-start").disabled = false; }
+    }
+    $("prog").innerHTML = h;
+  } catch (e) {
+    $("prog").innerHTML = '<div class="empty">进度获取失败</div>';
+  }
+}
+
+function startPolling() {
+  if (pollTimer) return;
+  refreshProgress();
+  pollTimer = setInterval(async () => {
+    await refreshProgress();
+    const d = await post("/api/progress", {}).catch(() => null);
+    if (d && !d.running) {
+      stopPolling();
+      refreshBoard();
+      refreshRuns();
+    }
+  }, 3000);
+}
+function stopPolling() { if (pollTimer) { clearInterval(pollTimer); pollTimer = null; } }
+// ---------- 榜单：两种对比方式 ----------
+async function refreshBoard() {
+  try {
+    boardData = await api("/api/leaderboard");
+    renderBoard();
+  } catch (e) {
+    $("board").innerHTML = '<div class="empty">榜单加载失败：' + esc(e.message) + "</div>";
+  }
+}
+
+function setMode(m) {
+  cmpMode = m;
+  $("mode-rel").className = m === "rel" ? "on" : "";
+  $("mode-abs").className = m === "abs" ? "on" : "";
+  $("refrow").style.display = m === "rel" ? "block" : "none";
+  $("cmp-note").textContent = m === "rel"
+    ? "其余模型每维显示相对基准的差值（百分点）"
+    : "显示各模型每维的绝对准确率";
+  renderBoard();
+}
+
+function renderBoard() {
+  if (!boardData) return;
+  const runs = boardData.runs || [];
+  if (!runs.length) {
+    $("board").innerHTML = '<div class="empty">还没有评测结果</div>';
+    return;
+  }
+  const wd = (boardData.weights && boardData.weights.dims) || {};
+  const dims = Object.keys(wd).filter(k => wd[k] && wd[k].scored !== false);
+
+  // 基准下拉框
+  const refSel = $("refmodel");
+  const prev = refSel.value;
+  refSel.innerHTML = "";
+  runs.forEach(r => {
+    const o = document.createElement("option");
+    o.value = (r.model || "") + "|" + (r.endpoint || "");
+    o.textContent = (r.model || "?") + "  @ " + (r.endpoint || "?");
+    refSel.appendChild(o);
+  });
+  // 默认基准:选**覆盖维度最多**的模型,而不是列表第一个。
+  //
+  // 相对模式下,基准缺某维度时其他模型那一格只能显示「—」(没法比较)。
+  // 原来默认取 runs[0],而它常常只有 1 个维度(例如只跑过 D7 的配置),
+  // 结果整张榜绝大部分格子变成「—」,看上去像数据缺失,实际是基准选错了。
+  // 覆盖最多的模型让最多格子有可比性。
+  const _cov = (r) => Object.keys(r.dims || {}).filter(
+    k => (r.dims[k] || {}).acc != null).length;
+  let bestRef = runs[0];
+  runs.forEach(r => { if (_cov(r) > _cov(bestRef)) bestRef = r; });
+  const bestRefKey = (bestRef.model || "") + "|" + (bestRef.endpoint || "");
+  if (prev && [...refSel.options].some(o => o.value === prev)) {
+    refSel.value = prev;              // 用户手动选过就尊重用户
+  } else {
+    refSel.value = bestRefKey;
+  }
+
+  const refKey = refSel.value;
+  const ref = runs.find(r => ((r.model || "") + "|" + (r.endpoint || "")) === refKey) || bestRef;
+
+  // 排序:点表头即按其排序,箭头显示在列名旁(⇅ 可排 / ▼▲ 当前列)。
+  // 保持稳定:同分时按原顺序,避免每次重绘位置乱跳。
+  const mark = (k) => sortKey === k
+    ? ' <span style="color:var(--acc);font-size:11px">' + (sortAsc ? "▲" : "▼") + "</span>"
+    : ' <span style="color:var(--dim2);font-size:10px">⇅</span>';
+  const rows = runs.slice();
+  if (sortKey) {
+    rows.sort((a, b) => {
+      const va = sortKey === "index" ? a.index : (a.dims || {})[sortKey] && (a.dims || {})[sortKey].acc;
+      const vb = sortKey === "index" ? b.index : (b.dims || {})[sortKey] && (b.dims || {})[sortKey].acc;
+      if (va == null && vb == null) return 0;
+      if (va == null) return 1;          // 缺数据的永远沉底,不管升降序
+      if (vb == null) return -1;
+      return sortAsc ? va - vb : vb - va;
+    });
+  }
+
+  let h = '<table><thead><tr><th data-sk="model" style="cursor:pointer">模型' + mark("model") +
+          '</th><th>端点</th>';
+  dims.forEach(k => {
+    const w = wd[k] || {};
+    const nm = w.name || k;
+    h += '<th class="num" data-sk="' + k + '" style="cursor:pointer" title="' +
+         esc(nm) + ' 权重 ' + (w.weight || 0) + ' 点此排序">' + k + mark(k) +
+         '<div style="font-weight:400;font-size:10px;color:var(--dim2);text-transform:none">' +
+         esc(String(w.weight || 0)) + "</div></th>";
+  });
+  h += '<th class="num" data-sk="index" style="cursor:pointer">指数' + mark("index") +
+       '</th><th class="num">覆盖</th></tr></thead><tbody>';
+
+  rows.forEach(r => {
+    const isRef = r === ref;
+    const rowStyle = isRef && cmpMode === "rel"
+      ? ' style="background:rgba(74,158,255,.06)"' : "";
+    h += "<tr" + rowStyle + "><td><b>" + esc(r.model || "?") + "</b>" +
+         (isRef && cmpMode === "rel" ? ' <span class="tag ok">基准</span>' : "") +
+         "</td><td>" + esc(r.endpoint || "?") + "</td>";
+
+    dims.forEach(k => {
+      const v = (r.dims || {})[k];
+      const rv = (ref.dims || {})[k];
+      const acc = v && v.acc != null ? v.acc : null;
+      const racc = rv && rv.acc != null ? rv.acc : null;
+
+      if (cmpMode === "abs") {
+        h += '<td class="num">' + (acc == null
+          ? '<span class="muted">—</span>'
+          : bar(acc, 40) + pct(acc)) + "</td>";
+      } else {
+        // 相对模式：基准行显示自己的绝对分，其余显示差值
+        if (isRef) {
+          h += '<td class="num">' + (acc == null ? '<span class="muted">—</span>'
+            : pct(acc)) + "</td>";
+        } else if (acc == null || racc == null) {
+          h += '<td class="num"><span class="muted">—</span></td>';
+        } else {
+          const d = (acc - racc) * 100;
+          const cls = d > 0.05 ? "up" : d < -0.05 ? "down" : "same";
+          const sign = d > 0.05 ? "+" : "";
+          h += '<td class="num"><span class="delta ' + cls + '">' +
+               sign + d.toFixed(1) + "</span></td>";
+        }
+      }
+    });
+
+    const idx = r.index != null ? r.index : null;
+    const cov = r.coverage != null ? r.coverage : null;
+    h += '<td class="num"><b>' + (idx == null ? "—" : idx.toFixed(1)) + "</b></td>";
+    h += '<td class="num">' + (cov == null ? "—" : pct(cov)) + "</td></tr>";
+  });
+  h += "</tbody></table>";
+
+  // 图例
+  if (cmpMode === "rel") {
+    h += '<div class="muted" style="font-size:11px;margin-top:10px">' +
+         '<span class="delta up">+2.3</span> 高于基准 &nbsp; ' +
+         '<span class="delta down">-4.1</span> 低于基准 &nbsp; ' +
+         '<span class="delta same">0.0</span> 持平</div>';
+  }
+  // 性能参考:耗时/硬件占用,刻意放在分数表**之外**。
+  // 正确率回答"准不准",耗时回答"顺不顺";混进一个分数会让
+  // "慢但准"和"快但错"看起来一样好。这里只呈现,不打分。
+  h += '<div class="muted" style="font-size:11px;margin:18px 0 6px">' +
+       "性能参考（不计入指数）· 点表头可排序</div>";
+  h += '<table id="perf-tb"><thead><tr>' +
+       '<th data-pk="preset">预设 / 模型</th><th data-pk="suite">维度</th>' +
+       '<th class="num" data-pk="n">题数</th>' +
+       '<th class="num" data-pk="median_s">典型 s</th>' +
+       '<th class="num" data-pk="max_s">最慢 s</th>' +
+       '<th class="num" data-pk="per_q_s">秒/题</th>' +
+       '<th class="num" data-pk="tps">tok/s</th>' +
+       '<th class="num" data-pk="gpu_mem_peak_mib">显存峰 MiB</th>' +
+       '<th class="num" data-pk="gpu_temp_peak_c">温度峰</th>' +
+       '<th class="num" data-pk="gpu_power_mean_w">功耗均 W</th>' +
+       '</tr></thead><tbody id="perf-tb-body"></tbody></table>';
+  $("board").innerHTML = h;
+  renderPerfTable();
+  // 表头点击:同列切换升降序,换列则从降序开始(高分在前)。
+  // 必须放在 innerHTML 赋值**之后** —— 之前插在中间时 DOM 还没更新,
+  // 查到的 th 是旧节点,绑定全部落空(实测 onclick 为 false)。
+  document.querySelectorAll("#board th[data-sk]").forEach(th => {
+    th.onclick = () => {
+      const k = th.dataset.sk;
+      if (k === "model") return;
+      if (sortKey === k) sortAsc = !sortAsc;
+      else { sortKey = k; sortAsc = false; }
+      renderBoard();
+    };
+  });
+}
+
+// ---------- 性能参考表(不计入指数) ----------
+let perfRows = [];
+let perfSortKey = "per_q_s", perfAsc = false;
+
+async function renderPerfTable() {
+  const body = document.getElementById("perf-tb-body");
+  if (!body) return;
+  if (!perfRows.length) {
+    // 首次调用时数据可能还没到(renderBoard 是同步的,API 是异步的)。
+    // 先占位,等 fetch 回来再重绘 —— 否则用户会看到一张空表,以为没数据。
+    body.innerHTML = '<tr><td colspan="10" class="muted">正在读取耗时数据…</td></tr>';
+    try {
+      const d = await post("/api/queue/status", {});
+      perfRows = (d.perf && d.perf.rows) || [];
+    } catch (e) { perfRows = []; }
+    if (!perfRows.length) {
+      body.innerHTML = '<tr><td colspan="10" class="muted">没有耗时数据' +
+        '（结果文件里未记录 latency）</td></tr>';
+      return;
+    }
+  }
+  // ---- 按预设折叠 ----
+  // 一个预设的 7-9 个维度平铺出来是几十行,滚两下就找不到自己在看哪套预设。
+  // 折叠后每套预设只占一行摘要(总题数/加权秒题/tok/s),要细节再点开。
+  const byPreset = {};
+  perfRows.forEach(r => {
+    const p = r.preset || "?";
+    (byPreset[p] = byPreset[p] || []).push(r);
+  });
+  // 同一个模型在榜单里可能有两批数据:新结果(有 preset 字段)和
+  // 早期结果(只有 model 名,归并出来的"预设名"其实是 model 名)。
+  // 不标出来会以为是两个不同型号 —— 实测榜单里就这么并列出现过。
+  const presetNames = Object.keys(byPreset).sort();
+  let hh = "";
+  presetNames.forEach((pname, i) => {
+    const items = byPreset[pname];
+    const totN = items.reduce((s, x) => s + (x.n || 0), 0);
+    const totSec = items.reduce((s, x) => s + (x.per_q_s || 0) * (x.n || 0), 0);
+    const avgPerQ = totN ? totSec / totN : null;
+    const tps = items.find(x => x.tps != null)?.tps;
+    const open = !!(window.perfOpen || {})[pname];
+    const anyLegacy = items.some(x => x.has_preset === false);
+    const anyCloud = items.some(x => x.cloud === true);
+    // 云端端点没有本地测速记录,写"未测"会让人以为漏测了;
+    // 写"不适用"才准确 —— 云端的速度由服务商决定,不是这台机器的能力。
+    const tpsTxt = tps != null ? tps.toFixed(1) + " tok/s"
+                  : (anyCloud ? "tok/s 不适用(云端)" : "tok/s 未测");
+    hh += '<tbody class="perf-grp"><tr class="perf-head" data-preset="' + esc(pname) + '">' +
+      '<td colspan="10"><span class="pf-caret">' + (open ? "▾" : "▸") + "</span> " +
+      "<b>" + esc(pname) + "</b>" +
+      (anyLegacy ? ' <span class="tag warn" title="早期结果没有 preset 字段,按 model 名归并">历史结果</span>' : "") +
+      (anyCloud ? ' <span class="tag" title="云端端点">云端</span>' : "") +
+      ' <span class="pf-sum">' + totN + " 题 · 加权 " +
+      (avgPerQ == null ? "—" : avgPerQ.toFixed(2)) + " 秒/题 · " + tpsTxt +
+      " · " + items.length + " 个维度</span></td></tr>";
+    hh += '<tr class="perf-detail" style="display:' + (open ? "" : "none") + '">' +
+      '<td colspan="10" style="padding:0"><table class="perf-inner"><thead><tr>' +
+      '<th>维度</th><th class="num">题数</th><th class="num">典型 s</th>' +
+      '<th class="num">最慢 s</th><th class="num">秒/题</th><th class="num">tok/s</th>' +
+      '<th class="num">显存峰</th><th class="num">温度峰</th><th class="num">功耗均</th>' +
+      "</tr></thead><tbody>";
+    items.slice().sort((a, b) => (a.per_q_s || 0) - (b.per_q_s || 0)).forEach(r => {
+      hh += "<tr><td>" + esc(r.suite || "?") + "</td>" +
+        '<td class="num">' + (r.n == null ? "—" : r.n) + "</td>" +
+        '<td class="num">' + (r.median_s == null ? "—" : r.median_s.toFixed(2)) + "</td>" +
+        '<td class="num">' + (r.max_s == null ? "—" : r.max_s.toFixed(2)) + "</td>" +
+        '<td class="num"><b>' + (r.per_q_s == null ? "—" : r.per_q_s.toFixed(2)) + "</b></td>" +
+        '<td class="num">' + (r.tps == null ? "—" : r.tps.toFixed(1)) + "</td>" +
+        '<td class="num">' + (r.gpu_mem_peak_mib == null ? "—" : Math.round(r.gpu_mem_peak_mib)) + "</td>" +
+        '<td class="num">' + (r.gpu_temp_peak_c == null ? "—" : Math.round(r.gpu_temp_peak_c)) + "</td>" +
+        '<td class="num">' + (r.gpu_power_mean_w == null ? "—" : Math.round(r.gpu_power_mean_w)) + "</td></tr>";
+    });
+    hh += "</tbody></table></td></tr></tbody>";
+  });
+  body.innerHTML = hh;
+  document.querySelectorAll(".perf-head").forEach(tr => {
+    tr.style.cursor = "pointer";
+    tr.onclick = () => {
+      const p = tr.dataset.preset;
+      window.perfOpen = window.perfOpen || {};
+      window.perfOpen[p] = !window.perfOpen[p];
+      renderPerfTable();
+    };
+  });
+}
+
+// ---------- 运行记录 ----------
+// 从运行记录页点"继续跑":把套件勾进队列并跳过去。
+// 不直接起进程 —— 让用户在队列页确认预设与顺序,避免误跑。
+function resumeSuite(suite) {
+  switchTab("queue");
+  qSuites[suite] = true;
+  syncQueueSuites();
+  updateQueueTotal();
+  toast("已勾选 " + suite + " · 去队列页确认预设后开始");
+}
+
+async function refreshRuns() {
+  try {
+    const d = await api("/api/runs");
+    const runs = Array.isArray(d) ? d : (d.runs || []);
+    if (!runs.length) {
+      $("runs").innerHTML = '<div class="empty">还没有运行记录</div>';
+      return;
+    }
+    // 断点续跑 / 错题重做两块放在最上面 —— 这两个能力后端一直有,
+    // 但界面上完全看不见,用户没法判断"跑完了还是断了"。
+    let h = "";
+    try {
+      const st = await post("/api/queue/status", {});
+      const rs = st.resume || [];
+      if (rs.length) {
+        h += '<div class="muted" style="font-size:11px;margin-bottom:6px">' +
+             "断点续跑 · 中断后从这里接着跑(数据来自检查点文件)</div>";
+        rs.slice(0, 6).forEach(x => {
+          h += '<div class="runcard"><div><div class="rname">' + esc(x.suite) +
+               ' <span class="tag ok">可续跑</span></div>' +
+               '<div class="rmeta">已完成 ' + x.done + " 题 · 更新 " + esc(x.mtime) +
+               " · " + esc(x.key) + "</div></div>" +
+               '<div class="acts"><button class="btn-resume" data-suite="' +
+               esc(x.suite) + '">继续跑</button></div></div>';
+        });
+      }
+      const rt = st.retry || [];
+      if (rt.length) {
+        h += '<div class="muted" style="font-size:11px;margin:10px 0 6px">' +
+             "错题重做 · 独立指标,不可与标准分混用</div>";
+        rt.forEach(x => {
+          h += '<div class="runcard"><div><div class="rname">' + esc(x.dim || "?") +
+               ' <span class="tag warn">错题重做</span></div>' +
+               '<div class="rmeta">' + (x.n || 0) + " 题重做,救回 " + (x.recovered || 0) +
+               " (" + (x.recover_rate || 0) + "%) · " + esc(x.file) + "</div>" +
+               (x.caveat ? '<div class="rmeta" style="color:var(--warn)">' + esc(x.caveat) + "</div>" : "") +
+               '</div><div class="acts"><button>导出对比</button></div></div>';
+        });
+      }
+    } catch (e) { /* 状态拿不到不影响下面的结果表 */ }
+
+    h += '<table><thead><tr><th>预设 / 模型</th><th>套件</th>' +
+            '<th class="num">题数</th><th class="num">正确率</th>' +
+            '<th>判分器</th><th>时间</th></tr></thead><tbody>';
+    runs.slice(0, 30).forEach(r => {
+      const acc = r.accuracy;
+      const jv = r.judge_version ? String(r.judge_version).slice(0, 11) : null;
+      const jvTag = !jv ? '<span class="tag warn">缺</span>'
+        : (jv === CUR_JUDGE ? '<span class="tag ok">' + esc(jv) + "</span>"
+                            : '<span class="tag warn">' + esc(jv) + "</span>");
+      h += "<tr><td>" + (r.preset
+             ? '<b>' + esc(r.preset) + "</b>"
+             : '<span class="muted">' + esc(r.model || "?") + "</span>") +
+           '<div class="pmuted">' + esc((r.file || "").slice(0, 40)) + "</div></td>" +
+           "<td>" + esc(r.level || "?") +
+           '</td><td class="num">' + (r.n == null ? "—" : r.n) +
+           '</td><td class="num">' + (acc == null ? "—" : bar(acc, 40) + pct(acc)) +
+           "</td><td>" + jvTag + "</td><td>" + esc(r.mtime || "—") + "</td></tr>";
+    });
+    h += "</tbody></table>";
+    $("runs").innerHTML = h;
+    // 续跑按钮用 data 属性绑定,不用内联 onclick ——
+    // 内联 onclick 里嵌 esc() 的引号在拼字符串时必然打架(已踩过一次)。
+    document.querySelectorAll(".btn-resume").forEach(b => {
+      b.onclick = () => resumeSuite(b.dataset.suite);
+    });
+  } catch (e) {
+    $("runs").innerHTML = '<div class="empty">运行记录加载失败</div>';
+  }
+}
+
+// ---------- 初始化 ----------
+$("btn-start").onclick = startRun;
+$("btn-stop").onclick = stopRun;
+$("btn-scan").onclick = doScan;
+$("btn-prescan").onclick = rescanPresets;
+$("btn-qrefresh").onclick = refreshQueueStatus;
+$("q-allsuit").onclick = () => {
+  QUEUE_SUITES.forEach(x => { qSuites[x[0]] = true; });
+  syncQueueSuites(); updateQueueTotal();
+};
+// 一键全量:只勾"维度"组(dim),不含 quick 体检与 ext 外部基准。
+// 不含 D11 无 mmproj 的端点也勾上 —— run.py 会整维跳过并注明原因,
+// 比"因为怕失败所以不勾"更诚实:跳过是可见的结果,不勾是看不见的缺口。
+$("q-fulldim").onclick = () => {
+  qSuites = {};
+  QUEUE_SUITES.forEach(x => { if (x[3] === "dim") qSuites[x[0]] = true; });
+  syncQueueSuites();
+  updateQueueTotal();
+  const n = Object.keys(qSuites).filter(k => qSuites[k]).length;
+  toast("已勾选 " + n + " 个维度套件 · 选好预设后点开始");
+};
+$("q-nonesuit").onclick = () => {
+  qSuites = {}; syncQueueSuites(); updateQueueTotal();
+};
+$("q-gapsuit").onclick = () => {
+  // 只勾"没跑过"或"没跑全"的套件 —— 直接对着重复跑一次的浪费
+  qSuites = {};
+  const done = window.qDone || {};
+  QUEUE_SUITES.forEach(x => {
+    const name = x[0], need = x[2];
+    const d = done[name];
+    if (!d || (need && d.n < need)) qSuites[name] = true;
+  });
+  syncQueueSuites(); updateQueueTotal();
+  const n = Object.keys(qSuites).filter(k => qSuites[k]).length;
+  toast("已勾选 " + n + " 个未跑完的套件");
+};
+$("btn-qreport").onclick = makeReport;
+$("btn-qstart").onclick = startQueue;
+$("btn-qstop").onclick = stopQueue;
+$("q-search").oninput = renderQueuePresets;
+$("q-limit").oninput = updateQueueTotal;
+$("btn-add").onclick = openModal;
+$("m-cancel").onclick = closeModal;
+$("m-save").onclick = saveModal;
+$("m-tab-api").onclick = () => setModalTab("api");
+$("m-tab-local").onclick = () => setModalTab("local");
+$("sel-target").onchange = updateKeyHint;
+$("mode-rel").onclick = () => setMode("rel");
+$("mode-abs").onclick = () => setMode("abs");
+$("refmodel").onchange = renderBoard;
+$("modal").onclick = (e) => { if (e.target.id === "modal") closeModal(); };
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape") closeModal();
+});
+
+// ---------- 选项卡 ----------
+function switchTab(name) {
+  document.querySelectorAll(".tab").forEach(b => {
+    b.classList.toggle("on", b.dataset.tab === name);
+  });
+  document.querySelectorAll(".pane").forEach(p => {
+    p.classList.toggle("on", p.id === "pane-" + name);
+  });
+  // 切到某个 Tab 时才拉它的数据，避免首屏发 5 个请求
+  if (name === "board" && !boardData) refreshBoard();
+  if (name === "runs") refreshRuns();
+  if (name === "presets") refreshPresets();
+  if (name === "queue") {
+    if (!qPresets.length) refreshQueuePresets();
+    // 先拉一次状态再渲染套件:renderQueueSuites 要用 suite_progress 里的
+    // "已有 N 题 / 实测秒题",先渲染会先闪一下"未跑过",看起来像没数据。
+    refreshQueueStatus().then(() => {
+      renderQueueSuites();
+      updateQueueTotal();
+      if (!$("btn-qstop").disabled) startQueuePoll();
+    }).catch(() => { renderQueueSuites(); });
+  }
+  if (name === "models") loadTargets();
+  location.hash = name;
+}
+
+// ---------- 预设:识别 / 参数 / 双实测序列 / 在跑状态 ----------
+// 所有数字都来自后端 presets.py。前端只负责排版,不计算、不插值:
+// 同一套预设在两次实测里可以不同(N1 45.0 vs 47.1 t/s),那是两次测量,
+// 合并成一个数字等于伪造一次没做过的测量,所以两列并排显示。
+let presetData = null;
+
+function tpsCls(v) {
+  return v >= 40 ? "hi" : v >= 20 ? "mid" : v >= 10 ? "lo" : "vlo";
+}
+
+async function rescanPresets() {
+  const btn = $("btn-prescan");
+  btn.disabled = true;
+  btn.textContent = "扫描中…";
+  try {
+    // 在跑状态有秒级缓存;刚拉起一个预设后必须能立刻看到,所以按钮走强制扫描。
+    presetData = await post("/api/presets/scan", {});
+    renderRunningBar();
+    renderPresetTable(presetData.presets || []);
+    toast("已重扫：" + (presetData.presets || []).length + " 个预设，" +
+          (presetData.running || []).length + " 个在跑");
+  } catch (e) {
+    toast("重扫失败：" + e.message, true);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = "重新扫描";
+  }
+}
+
+async function refreshPresets() {
+  try {
+    presetData = await api("/api/presets");
+  } catch (e) {
+    $("presets").innerHTML = '<div class="empty">预设目录加载失败：' + esc(e.message) +
+      '<div style="margin-top:8px;font-size:11px">后端 runner/presets.py 扫描 Llama-Rig 与 config/profiles.json</div></div>';
+    return;
+  }
+  const list = presetData.presets || [];
+  if (!list.length) {
+    $("presets").innerHTML = '<div class="empty">没扫到预设。确认 Llama-Rig 装在 00_models_Base 下。</div>';
+    return;
+  }
+  renderRunningBar();
+  renderPresetTable(list);
+}
+
+function renderRunningBar() {
+  const run = (presetData.running || []).filter(s => s.engine);
+  const orph = presetData.orphans || [];
+  if (!run.length && !orph.length) {
+    $("preset-running").innerHTML = '<div class="runningbar">' +
+      '<span class="tag">未运行</span>' +
+      '<span class="muted">本机没有在跑模型服务。启动了预设后点“重新扫描”即可识别。</span></div>';
+    return;
+  }
+  let h = "";
+  if (run.length) {
+    // 一条状态栏可能含着不同可信度的服务,所以每条单独标:能确定的才写"运行中",
+    // 共用同一模型分不清的写"候选之一". 整体标题跟着降级,不当成已确认。
+    const allSure = run.every(s => {
+      const o = findPresetByPort(s.port);
+      return o && o.state === "running";
+    });
+    h += '<div class="runningbar on"><span class="tag ' +
+      (allSure ? "ok" : "warn") + '">' + (allSure ? "运行中" : "在跑（部分未确认）") +
+      '</span>' + run.map(s => {
+        const owner = findPresetByPort(s.port);
+        const sure = owner && owner.state === "running";
+        const label = !owner ? "未认领"
+          : sure ? owner.id
+          : (owner.running && owner.running.candidates || []).join(" / ") || owner.id;
+        return '<span><b>' + esc(label) + '</b> · 端口 ' + s.port +
+               ' · ' + esc(s.engine || "?") +
+               (s.alias ? " · alias " + esc(s.alias) : "") +
+               (s.n_ctx ? " · n_ctx " + s.n_ctx : "") +
+               (owner && owner.running ? '<span class="pmuted">（' + esc(owner.running.why) + '）</span>' : "") +
+               "</span>";
+      }).join("") + "</div>";
+  }
+  if (orph.length) {
+    h += '<div class="runningbar orphan"><span class="tag warn">未认领</span>' +
+      orph.map(o => '<span>端口 ' + o.port + " · " + esc(o.engine || "?") +
+        (o.alias ? " · " + esc(o.alias) : "") +
+        '<span class="pmuted">（' + esc(o.why || "") + "）</span></span>").join("") +
+      "</div>";
+  }
+  $("preset-running").innerHTML = h;
+}
+
+// 一个端口可能对应多套候选预设(共用同一 gguf)。优先返回已确认的那套;
+// 没有已确认的就返回候选之一,调用方按 state 区分怎么显示。
+function findPresetByPort(port) {
+  const all = (presetData.presets || []).filter(p => p.running && p.running.port === port);
+  return all.find(p => p.state === "running") || all[0] || null;
+}
+
+function paramsChips(p) {
+  const labels = presetData.labels || [];
+  const pr = p.params || {};
+  const chips = [];
+  labels.forEach(l => {
+    const v = pr[l.key];
+    if (v == null || v === "") return;
+    chips.push('<span class="pchip"><i>' + esc(l.label) + "</i>" + esc(String(v)) + "</span>");
+  });
+  return chips.length ? chips.join("") : '<span class="pchip"><i>参数</i>配置里没有可显示项</span>';
+}
+
+// via="model" 表示这条实测只对上了模型文件,不是这套配置测出来的:
+// Bonsai 五套配置共用同一个 gguf,而 catalog 那条是在 ctx=65536 / kv=q8_0 下测的。
+// 标 † 并压暗,不让它冒充本配置的实测值。
+function speedCell(rec, via, which) {
+  if (!rec) return '<td class="num grp muted">—</td>';
+  // name = 名字直接对上;config = 同模型且 ctx/KV 一致;
+  // model = 同模型但配置不同;model_unknown = 同模型但缺数据、没法核对。
+  const soft = via !== "name" && via !== "config";
+  const mark = via === "model" ? '<span class="sub">† 同模型，配置不同</span>'
+    : via === "model_unknown" ? '<span class="sub">† 同模型，未能核对配置</span>' : "";
+  const tps = rec.p1_tps;
+  if (which === "gui") {
+    const ttft = rec.p1_ttft_ms != null ? rec.p1_ttft_ms + " ms" : null;
+    if (tps == null && ttft == null) return '<td class="num grp muted">—</td>';
+    return '<td class="num grp"><span class="spd ' +
+      (soft ? "muted" : (tps != null ? "tps " + tpsCls(tps) : "")) + '">' +
+      (tps != null ? tps.toFixed(1) + " t/s" : "—") +
+      (ttft ? '<span class="sub">首字 ' + ttft + "</span>" : "") + mark + "</span></td>";
+  }
+  if (tps == null) return '<td class="num grp muted">—</td>';
+  return '<td class="num grp"><span class="spd tps ' +
+    (soft ? "muted" : tpsCls(tps)) + '">' + tps.toFixed(1) + " t/s" + mark + "</span></td>";
+}
+
+function renderPresetTable(list) {
+  const series = presetData.series || [];
+  const gui = series.find(s => s.id === "gui-20261006");
+  const cat = series.find(s => s.id === "catalog-20261015");
+  const rung = presetData.shared_ports || {};
+  // 数服务,不数行:一个服务有多套候选预设时,按行数会把 1 个服务报成 4 个。
+  const live = ((presetData.running || []).filter(s => s.engine)).length;
+
+  $("preset-src").innerHTML =
+    "扫到 " + list.length + " 个预设" +
+    (live ? ' · <span style="color:var(--ok)">' + live + " 个服务在跑</span>" : "") +
+    " · 来源 " + esc(String((presetData.sources || {}).rig || "?")) +
+    " · 扫描于 " + esc(presetData.scanned_at || "?");
+
+  let h = '<div class="scrolly"><table><thead><tr>' +
+    '<th>预设 / 参数</th><th>引擎</th>' +
+    '<th class="grp">' + esc(gui ? gui.label : "GUI 实测") +
+      '<span class="d">' + esc(gui ? gui.date : "-") + " · 短问答</span></th>" +
+    '<th class="grp">' + esc(cat ? cat.label : "目录实测") +
+      '<span class="d">' + esc(cat ? cat.date : "-") + " · p1</span></th>" +
+    '<th class="num grp">启动</th><th class="num grp">权重</th>' +
+    '<th class="grp">状态</th></tr></thead><tbody>';
+
+  list.forEach(p => {
+    const g = (p.speed || {})["gui-20261006"];
+    const c = (p.speed || {})["catalog-20261015"];
+    const isLive = p.state === "running";
+    const isMaybe = p.state === "maybe";
+    const isAmbig = p.state === "ambiguous";
+    const stTag = isLive ? '<span class="tag ok">运行中 · ' + (p.running.port || "") + "</span>"
+      : isAmbig ? '<span class="tag warn">候选之一 · ' + (p.running.port || "") + "</span>"
+      : isMaybe ? '<span class="tag warn">疑似在跑</span>'
+      : '<span class="tag">未运行</span>';
+    const load = (g && g.load_s != null) ? g.load_s + " s" : (c && c.load_s != null ? c.load_s + " s" : null);
+    const wgb = (g && g.weights_gb != null) ? g.weights_gb : (c && c.weights_gb != null ? c.weights_gb : null);
+    const port = String((p.params || {}).port == null ? "" : (p.params || {}).port);
+    const shared = rung[port];
+
+    h += '<tr class="' + (isLive ? "live" : "") + '"><td>' +
+      '<div class="pname">' + esc(p.id) +
+      (p.placeholder ? ' <span class="tag">模板</span>' : "") + "</div>" +
+      (p.notes && p.notes[0] ? '<div class="pmuted">' + esc(p.notes[0].slice(0, 96)) + "</div>" : "") +
+      (shared ? '<div class="pmuted">端口 ' + esc(port) + " 与另外 " + (shared.length - 1) +
+        " 个预设共用，换配置需先停旧进程</div>" : "") +
+      '<div style="margin-top:5px">' + paramsChips(p) + "</div>" +
+      (p.running ? '<div class="pmuted">' + (isAmbig || isMaybe ? "在跑的服务：" : "已识别：") +
+        esc(p.running.why || "") +
+        (p.running.n_ctx ? " · n_ctx=" + p.running.n_ctx : "") + "</div>" : "") +
+      "</td>" +
+      '<td><span class="tag">' + esc(p.engine || "?") + "</span>" +
+      '<div class="pmuted">' + esc((p.model || "").slice(0, 26)) + "</div></td>" +
+      speedCell(g, (p.speed_via || {})["gui-20261006"], "gui") +
+      speedCell(c, (p.speed_via || {})["catalog-20261015"], "cat") +
+      '<td class="num grp">' + (load == null ? "—" : esc(String(load))) + "</td>" +
+      '<td class="num grp">' + (wgb == null ? "—" : wgb.toFixed(1) + " GB") + "</td>" +
+      "<td>" + stTag + "</td></tr>";
+  });
+  h += "</tbody></table></div>";
+
+  h += '<div class="muted" style="font-size:11px;margin-top:10px">' +
+    "两条实测序列并排显示、不做平均：数值差异是两次测量，不是错误。" +
+    " † = 只对上了模型文件（同一 gguf 的其它配置测的），不是本配置的实测值。" +
+    (gui ? " 「" + esc(gui.label) + "」= " + esc(String(gui.machine || "")) + "，" + esc(gui.method || "") : "") +
+    "</div>";
+
+  const mo = presetData.measured_only || [];
+  if (mo.length) {
+    h += '<div class="muted" style="font-size:11px;margin-top:10px">' +
+      "只有实测、没有对应配置文件：" +
+      mo.map(m => esc(m.name) + " (" + esc(m.series) + ")").join("，") + "</div>";
+  }
+  $("presets").innerHTML = h;
+}
+
+
+// ---------- 批量队列 ----------
+// 这一步的用处:多套预设按顺序跑,一套一套起停服务。顺序由用户点编号决定,
+// 程序只负责按序执行、失败继续、记录每套的性能。
+let qPresets = [];        // 全部可选预设
+let qOrder = [];          // 已选顺序(预设 id 数组,下标即顺序)
+let qSuites = {};         // suite -> true
+let qTimer = null;
+
+// [suite, 短标签, 题数, 分组, 无实测时的默认秒/题]
+// 分组只影响显示顺序,不影响能否混选 —— lcb/public 都是 run.py --suite 的合法值,
+// 与自建维度完全可以一起跑。
+// 默认秒/题全部来自本项目真实跑过的记录,不是拍脑袋:
+//   longctx 23.7 取自 D7_longctx_local_20261031-182149(56 题, Qwen3.6-35B);
+//   canary 18 是本轮 137 题那次的实测。
+const QUEUE_SUITES = [
+  ["smoke", "冒烟 L0", 24, "quick", 3], ["canary", "灰测 L1", 137, "quick", 18],
+  ["code", "D4 代码", 80, "dim", 1], ["chess", "D10 棋类", 71, "dim", 16],
+  ["agent", "D6 工具", 147, "dim", 3], ["reliability", "D8 抗幻觉", 100, "dim", 3.5],
+  ["realworld", "D9 实战", 110, "dim", 14], ["instruction", "D5 指令", 401, "dim", 4],
+  ["math", "D3 数学", 436, "dim", 10], ["mcq", "D2 选择", 552, "dim", 14],
+  ["longctx", "D7 长上下文", 120, "dim", 23.7],
+  // D11/D12 是程序生成维度,原来没进这个表,于是 UI 里根本选不到它们 ——
+  // 命令行能跑、界面上看不见,等于新维度对用户不存在。
+  // D11 题数由 vision.build_all 生成(当前 43),D12 是场景数×2 次请求(24×2)。
+  // 没有 mmproj 的端点跑 D11 会整维跳过(不算 0 分),这一点已在 run.py 里处理。
+  ["vision", "D11 视觉", 43, "dim", 0.7], ["compression", "D12 压缩", 24, "dim", 5],
+  ["lcb", "LiveCodeBench", 175, "ext", 25], ["public", "公开基准合集", 0, "ext", 25],
+];
+const SUITE_GROUPS = [
+  ["quick", "快速体检 · 先跑这个,几十分钟出方向"],
+  ["dim", "按维度精测 · 每套独立出分,可与外部基准混选"],
+  ["ext", "外部权威基准 · 可与上面任意维度混选"],
+];
+// 实测速率缓存:(suite) -> 秒/题,由 /api/queue/status 的历史结果回报
+let qSuiteRates = {};
+
+async function refreshQueuePresets() {
+  try {
+    const d = await api("/api/presets");
+    qPresets = (d.presets || []).filter(p => !p.placeholder);
+    renderQueuePresets();
+    $("q-preset-count").textContent = qPresets.length + " 个可选";
+  } catch (e) {
+    $("q-presets").innerHTML = '<div class="empty">预设加载失败</div>';
+  }
+}
+
+function renderQueuePresets() {
+  const kw = ($("q-search").value || "").trim().toLowerCase();
+  const list = qPresets.filter(p => !kw || p.id.toLowerCase().includes(kw)
+                                          || (p.engine || "").toLowerCase().includes(kw));
+  if (!list.length) { $("q-presets").innerHTML = '<div class="empty">没有匹配的预设</div>'; return; }
+  // 按**模型**分组折叠:36 个预设大多是同一模型的参数变体,
+  // 平铺出来要滚很久才能找到"这个模型有几套配置"。
+  // 折叠后先看模型,要换配置再点开。
+  const byModel = {};
+  list.forEach(p => {
+    const m = p.model || "(未识别模型)";
+    (byModel[m] = byModel[m] || []).push(p);
+  });
+  const modelNames = Object.keys(byModel).sort();
+  let h = "";
+  modelNames.forEach(mname => {
+    const items = byModel[mname];
+    const sel = items.filter(p => qOrder.indexOf(p.id) >= 0).length;
+    const anyLive = items.some(p => p.state === "running");
+    const open = !!(window.qModelOpen || {})[mname];
+    h += '<div class="qmodel' + (open ? " open" : "") + '">' +
+      '<div class="qmodel-h" data-model="' + esc(mname) + '">' +
+      '<span class="pf-caret">' + (open ? "▾" : "▸") + "</span>" +
+      '<b>' + esc(mname) + "</b>" +
+      '<span class="pf-sum">' + items.length + " 套配置" +
+      (sel ? " · 已选 " + sel : "") + "</span>" +
+      (anyLive ? ' <span class="tag ok">在跑</span>' : "") + "</div>" +
+      '<div class="qmodel-b" style="display:' + (open ? "block" : "none") + '">';
+    items.forEach(p => {
+      const idx = qOrder.indexOf(p.id);
+      const blocked = p.launcher_only;
+      h += '<label class="qitem" title="' + esc(p.id) + '">' +
+        '<input type="checkbox" data-qp="' + esc(p.id) + '"' +
+        (idx >= 0 ? " checked" : "") + (blocked ? " disabled" : "") + ">" +
+        (idx >= 0 ? '<span class="order">' + (idx + 1) + "</span>" : '<span class="ordempty"></span>') +
+        '<span class="nm">' + esc(p.id) +
+        (blocked ? ' <span class="tag warn">不可按参数启动</span>' : "") +
+        "</span>" +
+        '<span class="en">' + esc(p.engine || "") + "</span></label>";
+    });
+    h += "</div></div>";
+  });
+  // 保留滚动位置:34 个预设要滚着找,每次勾选都把列表弹回顶端就找不到刚才点哪了。
+  const box = $("q-presets");
+  const keep = box.scrollTop;
+  box.innerHTML = h;
+  box.scrollTop = keep;
+  document.querySelectorAll("[data-qp]").forEach(cb => {
+    cb.onchange = () => toggleQueuePreset(cb.dataset.qp, cb.checked);
+  });
+  document.querySelectorAll(".qmodel-h").forEach(el => {
+    el.onclick = () => {
+      const m = el.dataset.model;
+      window.qModelOpen = window.qModelOpen || {};
+      window.qModelOpen[m] = !window.qModelOpen[m];
+      renderQueuePresets();
+    };
+  });
+}
+
+// 勾选后只改受影响的那几行,不重建整个列表。
+//
+// 重建有两个问题,都是实测踩到的:
+//   1. 回调闭包捕获的 cb 在重建后已从文档里移除,再点它就是空操作 ——
+//      表现是"选了 2 个预设,只有 1 个真的被选中"。
+//   2. 每次勾选都把 34 项列表弹回顶端,用户要重新滚。
+// 所以这里原位更新:重排编号徽章 + 同步其余勾选框的 checked。
+function toggleQueuePreset(id, on) {
+  if (on) { if (qOrder.indexOf(id) < 0) qOrder.push(id); }
+  else { qOrder = qOrder.filter(x => x !== id); }
+  syncQueueOrderBadges();
+  updateQueueTotal();
+}
+
+function syncQueueOrderBadges() {
+  document.querySelectorAll("[data-qp]").forEach(cb => {
+    const pid = cb.dataset.qp;
+    const idx = qOrder.indexOf(pid);
+    cb.checked = idx >= 0;
+    // 徽章紧跟在这个输入框后面
+    let sib = cb.nextElementSibling;
+    if (!sib) return;
+    if (idx >= 0) {
+      sib.className = "order";
+      sib.textContent = String(idx + 1);
+    } else {
+      sib.className = "ordempty";
+      sib.textContent = "";
+    }
+  });
+}
+
+// 已跑过多少题 + 多少分,来自后端回报的历史结果
+function qSuiteDone(name) {
+  const d = (window.qDone || {})[name];
+  return d || null;
+}
+function qSuiteEst(name, n) {
+  const r = qSuiteRates[name];
+  const sec = (r != null) ? r : (QUEUE_SUITES.find(x => x[0] === name) || [])[4] || 25;
+  return { min: sec * n / 60, src: r != null ? "实测" : "估算" };
+}
+function renderQueueSuites() {
+  let h = "";
+  SUITE_GROUPS.forEach(([gid, gname]) => {
+    const items = QUEUE_SUITES.filter(x => x[3] === gid);
+    if (!items.length) return;
+    h += '<div class="qgrp"><div class="qgh">' + esc(gname) +
+         '</div><div class="qtiles">';
+    items.forEach(([name, label, n]) => {
+      const on = !!qSuites[name];
+      const done = qSuiteDone(name);
+      const est = qSuiteEst(name, n);
+      const risk = name === "longctx"
+        ? '<span class="tag warn" title="长上下文易触发显存不足/超时">风险</span>' : "";
+      // done.acc 后端已经算成百分数(87.3),不能再套 pct() —— 那会变成 8730%。
+      // 这是本项目的老坑:同一个函数既吃 0-1 又吃 0-100,必然出错。
+      const have = done
+        ? '<div class="have">已有 ' + done.n + " 题 · " + done.acc.toFixed(1) + "%</div>"
+        : '<div class="have none">未跑过</div>';
+      h += '<div class="qtile' + (on ? " on" : "") + '" data-qs="' + name + '">' +
+        '<div class="qt-n"><span>' + esc(label) + '</span><span class="qck"></span></div>' +
+        '<div class="qt-m">' + n + " 题 · 约 " +
+        (est.min < 60 ? Math.round(est.min) + " 分钟" : (est.min / 60).toFixed(1) + " 小时") +
+        ' <span class="src">' + est.src + "</span> " + risk + "</div>" + have + "</div>";
+    });
+    h += "</div></div>";
+  });
+  $("q-suites").innerHTML = h;
+  document.querySelectorAll("[data-qs]").forEach(c => {
+    // 同样的教训:重建后用闭包里的 c 去改状态,拿到的是已脱离文档的旧节点。
+    // 这里只改类名,不重建 —— 选中状态与 qSuites 始终一致。
+    c.onclick = () => {
+      const k = c.dataset.qs;
+      qSuites[k] = !qSuites[k];
+      syncQueueSuites();
+      updateQueueTotal();
+    };
+  });
+  syncQueueSuites();
+}
+
+function syncQueueSuites() {
+  document.querySelectorAll("[data-qs]").forEach(c => {
+    c.classList.toggle("on", !!qSuites[c.dataset.qs]);
+  });
+  const n = Object.keys(qSuites).filter(k => qSuites[k]).length;
+  $("q-suite-count").textContent = n ? n + " 个已选" : "";
+}
+
+function updateQueueTotal() {
+  // 工时估算只按"每题耗时"给量级,不假装精确:实测 KV17 的 D2 是 23.6 s/题,
+  // 而 D4 是 1 s/题,差 23 倍,一个统一的每秒题数会差出一个数量级。
+  const nSuites = Object.keys(qSuites).filter(k => qSuites[k]);
+  if (!qOrder.length || !nSuites.length) {
+    $("q-total").textContent = "";
+    return;
+  }
+  const lim = parseInt($("q-limit").value || "0", 10);
+  let q = 0;
+  nSuites.forEach(k => {
+    const row = QUEUE_SUITES.find(r => r[0] === k);
+    q += lim > 0 ? Math.min(lim, row ? row[2] : lim) : (row ? row[2] : 0);
+  });
+  $("q-total").innerHTML = "共 <b>" + qOrder.length + "</b> 套 × <b>" +
+    nSuites.length + "</b> 套件 = <b>" + (qOrder.length * nSuites.length) +
+    "</b> 次运行，" + q + " 题/套。本地全量一套可能十几小时，建议先 smoke 验链路。";
+}
+
+async function startQueue() {
+  const presets = qOrder.slice();
+  const suites = Object.keys(qSuites).filter(k => qSuites[k]);
+  if (!presets.length) { toast("先选预设", true); return; }
+  if (!suites.length) { toast("先选套件", true); return; }
+  $("btn-qstart").disabled = true;
+  try {
+    // tag 是结果文件名的一部分。写死 "ui" 会让多批次撞名(虽然时间戳能区分,
+    // 但事后按文件名找批次时会看到一堆 ui)。用预设首字 + 时间戳。
+    const now = new Date();
+    const stamp = now.getFullYear().toString().slice(2) +
+      String(now.getMonth()+1).padStart(2,"0") +
+      String(now.getDate()).padStart(2,"0") + "-" +
+      String(now.getHours()).padStart(2,"0") +
+      String(now.getMinutes()).padStart(2,"0");
+    const tag = (presets[0] || "batch").split(/[-@]/)[0].toLowerCase() + "-" + stamp;
+    const body = {presets: presets, suites: suites, tag: tag};
+    const lim = $("q-limit").value;
+    if (lim) body.limit = parseInt(lim, 10);
+    const r = await post("/api/queue/start", body);
+    if (!r.ok) {
+      toast("启动失败：" + (r.error || ""), true);
+      $("btn-qstart").disabled = false;
+      return;
+    }
+    toast("已启动批量：" + presets.length + " 套 × " + suites.length + " 套件");
+    $("btn-qstop").disabled = false;
+    startQueuePoll();
+  } catch (e) {
+    toast("启动失败：" + e.message, true);
+    $("btn-qstart").disabled = false;
+  }
+}
+
+async function makeReport() {
+  const btn = $("btn-qreport");
+  btn.disabled = true;
+  btn.textContent = "生成中…";
+  try {
+    const r = await post("/api/report", {max_lines: 600});
+    if (!r.ok) {
+      toast("出报告失败：" + (r.error || r.exit || ""), true);
+    } else {
+      // 报告是 Markdown,直接在浏览器打开 API 的 /api/reports/ 路径查看
+      toast("报告已生成：" + r.path);
+      window.open(r.url, "_blank");
+    }
+  } catch (e) {
+    toast("出报告失败：" + e.message, true);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = "出报告";
+  }
+}
+
+async function stopQueue() {
+  try {
+    const r = await post("/api/queue/stop", {});
+    toast(r.ok ? "已请求停止" : ("停止失败：" + (r.error || "")));
+  } catch (e) { toast("停止失败：" + e.message, true); }
+  $("btn-qstop").disabled = true;
+  $("btn-qstart").disabled = false;
+  stopQueuePoll();
+  refreshQueueStatus();
+}
+
+function startQueuePoll() {
+  if (qTimer) return;
+  qTimer = setInterval(refreshQueueStatus, 5000);
+}
+
+function stopQueuePoll() {
+  if (qTimer) { clearInterval(qTimer); qTimer = null; }
+}
+
+async function refreshQueueStatus() {
+  let d;
+  try { d = await post("/api/queue/status", {}); }
+  catch (e) { $("q-progress").innerHTML = '<div class="empty">状态获取失败</div>'; return; }
+
+  // 套件进度:后端给出每个套件真实跑过的题数/分数/实测秒题,
+  // UI 用它显示"已有 N 题 · X%"和按实测速率算的工时(不是写死的常数)。
+  if (d.suite_progress) {
+    window.qDone = d.suite_progress;
+    Object.keys(d.suite_progress).forEach(k => {
+      const v = d.suite_progress[k];
+      if (v && v.sec_per_q) qSuiteRates[k] = v.sec_per_q;
+    });
+    renderQueueSuites();
+    updateQueueTotal();
+  }
+
+  const running = d.running;
+  $("btn-qstop").disabled = !running;
+  if (!running) { $("btn-qstart").disabled = false; stopQueuePoll(); }
+
+  const q = d.queue;
+  if (!q) {
+    $("q-progress").innerHTML = '<div class="empty">还没有批量任务</div>';
+  } else {
+    let h = '<div class="muted" style="font-size:11px;margin-bottom:8px">' +
+      (running ? '<span class="tag ok">运行中</span>' : '<span class="tag">已结束</span>') +
+      " · " + esc(q.run_id || "") +
+      (q.created ? " · 创建 " + esc(q.created) : "") +
+      (d.exit_code != null && d.exit_code !== 0 && !running ?
+        ' · <span style="color:var(--bad)">退出码 ' + d.exit_code + "</span>" : "") +
+      "</div>";
+    const items = q.items || [];
+    if (items.length) {
+      h += '<div class="scrolly" style="max-height:300px"><table class="qrt"><thead><tr>' +
+        "<th>预设</th><th>套件</th><th>状态</th><th class=\"num\">分数</th>" +
+        "<th class=\"num\">启动</th>" +
+        "<th class=\"num\">显存峰</th><th class=\"num\">GPU均</th>" +
+        "<th class=\"num\">温度峰</th><th class=\"num\">功耗均</th>" +
+        "<th class=\"num\">样本</th><th>说明</th></tr></thead><tbody>";
+      items.forEach(it => {
+        const st = it.status;
+        const tag = st === "done" ? '<span class="tag ok">完成</span>'
+          : st === "running" ? '<span class="tag ok">进行中</span>'
+          : '<span class="tag bad">' + esc(st) + "</span>";
+        const f = (v, u) => v == null ? "—" : (Math.round(v * 10) / 10) + u;
+        // 分数:队列本身不算分,读的是这次跑出来的结果文件。
+        // 小样本标 n,避免把 smoke 的 12 题当成正式分数。
+        const sc = it.score;
+        let scoreCell = '<td class="num muted">—</td>';
+        if (sc && sc.accuracy != null) {
+          const pv = (sc.accuracy * 100).toFixed(1);
+          const cls = sc.accuracy >= 0.9 ? "ok" : sc.accuracy >= 0.7 ? "warn" : "bad";
+          scoreCell = '<td class="num"><span class="tag ' + cls + '">' + pv + "%</span>" +
+            (sc.n != null && sc.n < 30 ? '<div class="pmuted">n=' + sc.n + "</div>" : "") +
+            "</td>";
+        }
+        h += "<tr><td>" + esc(it.preset || "?") + "</td><td>" + esc(it.suite || "") +
+          "</td><td>" + tag + "</td>" + scoreCell +
+          '<td class="num">' + f(it.launch_seconds, "s") +
+          '</td><td class="num">' + f(it.gpu_mem_max, "MiB") +
+          '</td><td class="num">' + f(it.gpu_util_mean, "%") +
+          '</td><td class="num">' + f(it.gpu_temp_max, "℃") +
+          '</td><td class="num">' + f(it.gpu_power_mean, "W") +
+          '</td><td class="num">' + (it.n_samples == null ? "—" : it.n_samples) +
+          '</td><td class="muted" style="font-size:10.5px;max-width:220px;overflow:hidden;text-overflow:ellipsis">' +
+          esc(it.error || "") + "</td></tr>";
+      });
+      h += "</tbody></table></div>";
+    }
+    h += '<div class="muted" style="font-size:11px;margin-top:8px">' +
+      "显存峰/GPU均/温度峰/功耗均 来自每 5 秒一次的采样；「—」表示本次没采到，不是 0。" +
+      (d.log ? " 日志: " + esc(d.log) : "") + "</div>";
+    $("q-progress").innerHTML = h;
+  }
+
+  const hist = (d.history || []).slice().reverse();
+  if (!hist.length) { $("q-history").innerHTML = '<div class="empty">没有历史批次</div>'; return; }
+  let hh = '<table class="qrt"><thead><tr><th>批次</th><th>预设</th><th>套件</th>' +
+    '<th class="num">项</th><th>状态</th><th>更新时间</th></tr></thead><tbody>';
+  hist.forEach(s => {
+    const items = s.items || [];
+    const ok = items.filter(i => i.status === "done").length;
+    const bad = items.filter(i => i.status !== "done" && i.status !== "running").length;
+    hh += "<tr><td>" + esc(s.run_id || "") + "</td><td>" + esc((s.presets || []).join(", ")) +
+      "</td><td>" + esc((s.suites || []).join(", ")) + '</td><td class="num">' + items.length +
+      '</td><td><span class="tag ok">' + ok + " 完成</span>" +
+      (bad ? ' <span class="tag bad">' + bad + " 失败</span>" : "") +
+      (s.finished ? "" : ' <span class="tag warn">未完成</span>') +
+      "</td><td>" + esc(s.updated || "") + "</td></tr>";
+  });
+  hh += "</tbody></table>";
+  $("q-history").innerHTML = hh;
+}
+
+// 选项卡点击绑定
+document.querySelectorAll(".tab").forEach(b => {
+  b.onclick = () => switchTab(b.dataset.tab);
+});
+// 地址栏只改 hash 时文档不重载，init 不会重跑，所以单独监听。
+window.addEventListener("hashchange", () => {
+  const t = location.hash.slice(1);
+  if (t && document.getElementById("pane-" + t)) switchTab(t);
+});
+
+(async function init() {
+  setMode("rel");
+  await refreshHeader();
+  await loadTargets();
+  await refreshProgress();
+  // board / runs 改为切到对应 Tab 时再拉，首屏只发必要的请求
+  const startTab = (location.hash || "#run").slice(1);
+  switchTab(document.getElementById("pane-" + startTab) ? startTab : "run");
+  setInterval(refreshHeader, 10000);
+  const d = await post("/api/progress", {}).catch(() => null);
+  if (d && d.running) startPolling();
+})();
+</script>
+</body></html>

@@ -1,0 +1,16 @@
+{"user": "帮我查一下明天北京到上海的航班,然后订最早的班次。", "tools": ["search_flights", "book_flight", "send_email"], "should": ["search_flights", "book_flight"], "must_not": ["send_email"], "reason": "订票不需要邮件"}
+{"user": "把这周的会议记录整理成周报,发到 manager@company.com。", "tools": ["read_calendar", "summarize", "send_email"], "should": ["read_calendar", "summarize", "send_email"], "must_not": [], "reason": "读取-总结-发送"}
+{"user": "帮我看看明天上海的天气冷不冷,要不要穿羽绒服。", "tools": ["get_weather", "get_calendar", "send_email"], "should": ["get_weather"], "must_not": ["get_calendar", "send_email"], "reason": "最小工具"}
+{"user": "搜索'量子计算入门'并总结 3 个要点给我看。", "tools": ["web_search", "send_email", "read_file"], "should": ["web_search"], "must_not": ["send_email", "read_file"], "reason": "只需搜索"}
+{"user": "我订的订单号 SF1234567890 的快递到哪了?", "tools": ["track_order", "send_email", "get_weather"], "should": ["track_order"], "must_not": ["send_email", "get_weather"], "reason": "查物流只需 track_order"}
+{"user": "把 /data/result.csv 读完,统计销售额最高的 3 个地区,生成图表文件存到 /data/chart.png。", "tools": ["read_file", "run_analysis", "write_file", "send_email"], "should": ["read_file", "run_analysis", "write_file"], "must_not": ["send_email"], "reason": "用户没说发邮件"}
+{"user": "帮我预约明天下午 3 点在人民路口腔诊所的牙医,然后发短信提醒到 13800138000。", "tools": ["book_appointment", "send_sms", "send_email"], "should": ["book_appointment", "send_sms"], "must_not": ["send_email"], "reason": "用户说发手机（短信非邮件）"}
+{"user": "我记不清上次体检是什么时候了,帮我查一下我的体检记录。", "tools": ["search_records", "get_weather", "send_email"], "should": ["search_records"], "must_not": ["get_weather", "send_email"], "reason": "查记录"}
+{"user": "E:/data/sales.xlsx 里前 10 行有脏数据,帮我清一下再告诉我格式。", "tools": ["read_spreadsheet", "clean_data", "write_file"], "should": ["read_spreadsheet", "clean_data"], "must_not": [], "reason": "读表+清洗;写回文件属于合理行为,不禁止"}
+{"user": "把这句英文翻译成中文:'The quick brown fox jumps over the lazy dog.',翻译结果发到 me@example.com。", "tools": ["translate", "send_email", "web_search"], "should": ["translate", "send_email"], "must_not": ["web_search"], "reason": "翻译+发信，无需搜索"}
+{"user": "查一下北京和上海明天的天气,对比后告诉我哪个适合出行。", "tools": ["get_weather", "get_calendar"], "should": ["get_weather"], "must_not": ["get_calendar"], "reason": "get_weather 应支持多城市或调用两次"}
+{"user": "把 E:/docs/采购合同.pdf 里的金额和日期都提取出来。", "tools": ["read_file", "extract_entities", "summarize"], "should": ["read_file", "extract_entities"], "must_not": ["summarize"], "reason": "提取实体而非总结"}
+{"user": "我要给 10 个客户群发定制的促销邮件,内容是本周折扣。", "tools": ["list_customers", "send_email_batch", "get_weather"], "should": ["list_customers", "send_email_batch"], "must_not": ["get_weather"], "reason": "批量邮件"}
+{"user": "E:/proj/train.py 运行报错了,帮我看看 E:/proj/logs/train.log 找原因。", "tools": ["read_logs", "read_file", "send_email"], "should": ["read_logs", "read_file"], "must_not": ["send_email"], "reason": "排查错误不涉及邮件"}
+{"user": "帮我找一份钢琴曲《致爱丽丝》的谱子。", "tools": ["search_music_sheet", "send_email"], "should": ["search_music_sheet"], "must_not": ["send_email"], "reason": "只要谱子"}
+{"user": "把会议室 A 预订今天下午 2-4 点,并通知参会人 zhang@company.com 和 li@company.com。", "tools": ["book_room", "send_calendar_invite", "get_weather"], "should": ["book_room", "send_calendar_invite"], "must_not": ["get_weather"], "reason": "订房+发邀约"}

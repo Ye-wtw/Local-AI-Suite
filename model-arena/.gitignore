@@ -1,0 +1,63 @@
+# ---------------------------------------------------------------------------
+# What must NOT be committed, and why.
+#
+# The rule of thumb: anything that is either (a) your own measurement, (b) large
+# and re-downloadable, or (c) specific to your machine.
+# ---------------------------------------------------------------------------
+
+# --- your results: nobody else's business, and they change constantly ---
+results/
+reports/*.md
+!reports/.gitkeep
+
+# --- your machine and models: differs for every user ---
+# Regenerate with: python runner/detect.py --write
+config/machine.json
+config/models.json
+# Your own launch profiles. An example ships instead.
+config/profiles.json
+config/kv_measured.json
+# examples DO ship:
+!config/*.example.json
+
+# --- downloads: large, and re-fetchable with fetch_public.py ---
+cache/
+datasets/public/
+datasets/agent_env/tools_real.json
+
+# --- personal material ---
+reference/
+datasets/private/
+datasets/_samples/D9_harvest_candidates.jsonl
+
+# --- build / runtime junk ---
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.venv/
+venv/
+node_modules/
+dist/
+build/
+*.spec
+
+# --- scratch ---
+*.log
+*.tmp
+*.bak
+*.bak-*
+*.orig
+.DS_Store
+Thumbs.db
+
+# --- secrets: never commit a key, even by accident ---
+.env
+.env.*
+*.key
+secrets.json
+config/endpoints.local.json
+
+# --- generated fixtures that are large ---
+datasets/fixtures/longctx/long/
+datasets/_mined/

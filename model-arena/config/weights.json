@@ -1,0 +1,121 @@
+{
+  "_comment": "维度权重。用于计算 Intelligence Index。weight=0 表示仅诊断、不计分。",
+  "_note": "权重比例参考 Artificial Analysis 官方四大类(Agents 30% / Coding 20% / General 30% / Scientific 20%);维度→基准的映射为本项目自设计。",
+  "index_name": "model-arena Intelligence Index",
+  "dims": {
+    "D2": {
+      "name": "通用知识与推理",
+      "weight": 0.2,
+      "scored": true
+    },
+    "D3": {
+      "name": "数学",
+      "weight": 0.2,
+      "scored": true
+    },
+    "D4": {
+      "name": "代码",
+      "weight": 0.2,
+      "scored": true
+    },
+    "D5": {
+      "name": "指令遵循",
+      "weight": 0.1,
+      "scored": true
+    },
+    "D6": {
+      "name": "Agent 工具调用",
+      "weight": 0.1,
+      "scored": true
+    },
+    "D7": {
+      "name": "长上下文",
+      "weight": 0.05,
+      "scored": true
+    },
+    "D8": {
+      "name": "可靠性",
+      "weight": 0.05,
+      "scored": true
+    },
+    "D9": {
+      "name": "真实场景实战",
+      "weight": 0.1,
+      "scored": true,
+      "reason": "用冻结的云端基准答案 + 规则检查项判分,零边际成本"
+    },
+    "D10": {
+      "name": "棋类(诊断)",
+      "weight": 0.0,
+      "scored": false,
+      "reason": "实测总体得分 49.3% 等于『零棋力基线』48.6%,无区分度;仅保留 mate-in-1 / piece-reach 子类作侧面观察。详见 PLAN.md §5"
+    }
+  },
+  "speed_dims": {
+    "D1": {
+      "name": "速度",
+      "reported_separately": true,
+      "metrics": [
+        "ttft_s",
+        "output_tps",
+        "e2e_500_s"
+      ],
+      "stats": [
+        "p50",
+        "p95"
+      ]
+    }
+  },
+  "presets": {
+    "balanced": {
+      "D2": 0.2,
+      "D3": 0.2,
+      "D4": 0.2,
+      "D5": 0.1,
+      "D6": 0.1,
+      "D7": 0.05,
+      "D8": 0.05,
+      "D9": 0.1
+    },
+    "coding": {
+      "D2": 0.1,
+      "D3": 0.15,
+      "D4": 0.4,
+      "D5": 0.05,
+      "D6": 0.15,
+      "D7": 0.05,
+      "D8": 0.0,
+      "D9": 0.1
+    },
+    "agent": {
+      "D2": 0.1,
+      "D3": 0.1,
+      "D4": 0.15,
+      "D5": 0.05,
+      "D6": 0.35,
+      "D7": 0.1,
+      "D8": 0.05,
+      "D9": 0.1
+    },
+    "chinese": {
+      "D2": 0.3,
+      "D3": 0.15,
+      "D4": 0.1,
+      "D5": 0.15,
+      "D6": 0.05,
+      "D7": 0.05,
+      "D8": 0.05,
+      "D9": 0.15
+    },
+    "local-8g": {
+      "D2": 0.15,
+      "D3": 0.2,
+      "D4": 0.15,
+      "D5": 0.15,
+      "D6": 0.05,
+      "D7": 0.1,
+      "D8": 0.05,
+      "D9": 0.15
+    }
+  }
+}

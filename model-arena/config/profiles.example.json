@@ -1,0 +1,4 @@
+{
+ "_comment": "启动配置档。运行 python runner/profiles.py --import-bat <你的启动器.bat> 可自动导入",
+ "profiles": {}
+}

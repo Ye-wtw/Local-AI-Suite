@@ -1,0 +1,23 @@
+{
+ "_comment": "把本文件复制为 machine.json,或直接运行 python runner/detect.py --write 自动生成",
+ "vram_mib": 8192,
+ "ram_gib": 32.0,
+ "usable_vram_ratio": 0.9,
+ "usable_ram_ratio": 0.7,
+ "llama_server": "C:/path/to/llama.cpp/llama-server.exe",
+ "model_dirs": [
+  "C:/path/to/your/ggufs",
+  "D:/another/model/directory"
+ ],
+ "gpus": [
+  {
+   "name": "your GPU",
+   "vram_mib": 8192
+  }
+ ],
+ "_notes": [
+  "model_dirs: 扫描 .gguf 时搜索的目录。也可以设环境变量 MODEL_DIRS(多个用分号隔开)。不填则只找仓库内的 ./models",
+  "usable_vram_ratio: 桌面/浏览器会占一部分显存,保守填 0.9",
+  "若实测能用到更高比例,运行 runner/calibrate.py 后上调"
+ ]
+}

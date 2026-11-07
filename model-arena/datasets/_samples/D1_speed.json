@@ -1,0 +1,22 @@
+{
+  "dim": "D1", "source": "aa-performance-methodology", "note": "速度测试配置，非题库",
+  "workloads": [
+    {"name": "short",  "input_tokens": 1000,   "min_output_tokens": 1000},
+    {"name": "medium", "input_tokens": 10000,  "min_output_tokens": 1500, "default": true},
+    {"name": "long",   "input_tokens": 100000, "min_output_tokens": 2000},
+    {"name": "vision", "image_mp": 1.0, "input_tokens": 1000, "min_output_tokens": 1000}
+  ],
+  "loads": [
+    {"name": "single",   "concurrency": 1},
+    {"name": "parallel", "concurrency": 10}
+  ],
+  "repeats": 8,
+  "metrics": ["ttft", "ttfa", "output_tps", "e2e_500tok", "p50", "p95"],
+  "formulas": {
+    "output_speed": "(total_tokens - first_chunk_tokens) / (t_last_chunk - t_first_chunk)",
+    "ttft": "t_first_token - t_request_sent",
+    "e2e_500": "ttft + 500 / output_speed"
+  },
+  "params": {"temperature": 0, "top_p": 1},
+  "local_note": "本地模型加测 8K→128K 上下文降速扫描（旧项目已验证 MoE 不掉速）"
+}

@@ -1,0 +1,20 @@
+{"user": "帮我把 E:/docs/季度报告.pdf 转成 Word 文档。", "tools": ["convert_pdf", "send_email", "get_weather"], "should": ["convert_pdf"], "must_not": ["send_email", "get_weather"], "reason": "只需转换"}
+{"user": "帮我查一下我的银行账户余额。", "tools": ["get_balance", "send_email", "get_weather"], "should": ["get_balance"], "must_not": ["send_email", "get_weather"], "reason": "查余额"}
+{"user": "把 E:/data/orders.xlsx 里的重复行删掉。", "tools": ["read_spreadsheet", "clean_data", "write_file"], "should": ["read_spreadsheet", "clean_data", "write_file"], "must_not": [], "reason": "读-清-存"}
+{"user": "帮我把 E:/audio/meeting.mp3 转成文字稿。", "tools": ["transcribe", "send_email"], "should": ["transcribe"], "must_not": ["send_email"], "reason": "只转写"}
+{"user": "帮我在万达影城订两张周六下午 3 点《流浪地球 3》的电影票。", "tools": ["book_movie", "get_weather", "send_email"], "should": ["book_movie"], "must_not": ["get_weather", "send_email"], "reason": "订票"}
+{"user": "查询一下包裹 SF9876543210 的物流信息。", "tools": ["track_package", "get_weather"], "should": ["track_package"], "must_not": ["get_weather"], "reason": "查物流"}
+{"user": "帮我把 E:/data/export.csv 转成 JSON 格式。", "tools": ["convert_format", "send_email"], "should": ["convert_format"], "must_not": ["send_email"], "reason": "格式转换"}
+{"user": "把这段文字翻译成英文并朗读:'今天天气很好。'", "tools": ["translate", "text_to_speech"], "should": ["translate", "text_to_speech"], "must_not": [], "reason": "翻译+朗读"}
+{"user": "查一下附近有哪些好吃的川菜馆。", "tools": ["search_restaurants", "send_email", "get_weather"], "should": ["search_restaurants"], "must_not": ["send_email", "get_weather"], "reason": "搜餐馆"}
+{"user": "帮我设置一个明天上午 7:30 的闹钟。", "tools": ["set_alarm", "send_email"], "should": ["set_alarm"], "must_not": ["send_email"], "reason": "设闹钟"}
+{"user": "把 E:/proj/budget.xlsx 预算表发到 finance@company.com。", "tools": ["read_file", "send_email"], "should": ["read_file", "send_email"], "must_not": [], "reason": "读+发"}
+{"user": "帮我查一下今天有哪些重要会议。", "tools": ["get_calendar", "send_email"], "should": ["get_calendar"], "must_not": ["send_email"], "reason": "查日程"}
+{"user": "帮我把这个视频下载下来:https://example.com/talk.mp4", "tools": ["download_video", "send_email"], "should": ["download_video"], "must_not": ["send_email"], "reason": "下载"}
+{"user": "帮我生成一份这周的工作周报。", "tools": ["read_calendar", "generate_report", "send_email"], "should": ["read_calendar", "generate_report"], "must_not": ["send_email"], "reason": "读+生成，未说发"}
+{"user": "帮我把 E:/proj/dist 文件夹压缩成 zip。", "tools": ["compress_folder", "send_email"], "should": ["compress_folder"], "must_not": ["send_email"], "reason": "压缩"}
+{"user": "帮我查一下明天股市开盘时间。", "tools": ["web_search", "send_email"], "should": ["web_search"], "must_not": ["send_email"], "reason": "查信息"}
+{"user": "帮我把 E:/proj/main.py 这段代码格式化一下。", "tools": ["format_code", "send_email"], "should": ["format_code"], "must_not": ["send_email"], "reason": "格式化"}
+{"user": "帮我把 E:/img/photo.jpg 压缩一下。", "tools": ["compress_image", "send_email"], "should": ["compress_image"], "must_not": ["send_email"], "reason": "压缩图片"}
+{"user": "帮我查一下我的手机话费余额。", "tools": ["get_phone_balance", "get_weather"], "should": ["get_phone_balance"], "must_not": ["get_weather"], "reason": "查话费"}
+{"user": "帮我把这个 URL 缩短一下:https://example.com/a/very/long/path?x=1", "tools": ["shorten_url", "send_email"], "should": ["shorten_url"], "must_not": ["send_email"], "reason": "缩短链接"}

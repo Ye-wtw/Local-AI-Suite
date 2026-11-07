@@ -1,0 +1,141 @@
+{
+  "version": 1,
+  "targets": [
+    {
+      "id": "local",
+      "kind": "attach",
+      "label": "本地 Qwen3.6-35B-APEX",
+      "base_url": "http://127.0.0.1:8080",
+      "model": "Qwen3.6-35B-APEX",
+      "engine": "llama.cpp",
+      "timeout": 600
+    },
+    {
+      "id": "ollama",
+      "kind": "attach",
+      "label": "Ollama qwen3",
+      "base_url": "http://127.0.0.1:11434",
+      "model": "qwen3",
+      "engine": "ollama",
+      "timeout": 600
+    },
+    {
+      "id": "deepseek-flash",
+      "kind": "attach",
+      "label": "云端 DeepSeek Flash",
+      "base_url": "https://api.deepseek.com",
+      "model": "deepseek-flash",
+      "engine": "openai",
+      "timeout": 600,
+      "api_key_env": "DEEPSEEK_API_KEY"
+    },
+    {
+      "id": "launch-cyber-tiel-coder-35b-a3b",
+      "kind": "launch",
+      "label": "Cyber-Tiel-Coder-35B-A3B-MTP-UD-Q4_K_XL",
+      "model_path": "E:\\AI_workspace\\01_models\\cyber\\cyber-strata\\models\\Cyber-Tiel-Coder-35B-A3B-MTP-UD-Q4_K_XL.gguf",
+      "ctx": 32768,
+      "ngl": 99,
+      "cpu_moe": 30,
+      "kv_type": "q4_0",
+      "port": 8080,
+      "engine": "llama.cpp"
+    },
+    {
+      "id": "launch-ornith-1-5-35b-a3b-heret",
+      "kind": "launch",
+      "label": "Ornith-1.5-35B-A3B-Heretic-MTP-APEX-I-Compact",
+      "model_path": "E:\\AI_workspace\\01_models\\SC117\\Ornith-1.5-35B-A3B-Heretic-MTP-APEX-GGUF\\Ornith-1.5-35B-A3B-Heretic-MTP-APEX-I-Compact.gguf",
+      "ctx": 32768,
+      "ngl": 99,
+      "cpu_moe": 30,
+      "kv_type": "q4_0",
+      "port": 8080,
+      "engine": "llama.cpp"
+    },
+    {
+      "id": "launch-qwen3-6-35b-a3b-uncensor",
+      "kind": "launch",
+      "label": "Qwen3.6-35B-A3B-uncensored-heretic-Native-MTP-Preserved-APEX-I-Compact",
+      "model_path": "E:\\AI_workspace\\01_models\\Qwen3.6 APEX\\Qwen3.6-35B-A3B-uncensored-heretic-Native-MTP-Preserved-APEX-I-Compact.gguf",
+      "ctx": 32768,
+      "ngl": 99,
+      "cpu_moe": 30,
+      "kv_type": "q4_0",
+      "port": 8080,
+      "engine": "llama.cpp"
+    },
+    {
+      "id": "launch-ternary-bonsai-2-27b-unc",
+      "kind": "launch",
+      "label": "Ternary-Bonsai-2-27B-Uncensored-Gaston-PTQ1_0-MTP",
+      "model_path": "E:\\AI_workspace\\01_models\\gaston-parravicini\\Ternary-Bonsai-2-27B-Uncensored-Gaston\\Ternary-Bonsai-2-27B-Uncensored-Gaston-PTQ1_0-MTP.gguf",
+      "ctx": 32768,
+      "ngl": 99,
+      "cpu_moe": 30,
+      "kv_type": "q4_0",
+      "port": 8080,
+      "engine": "llama.cpp"
+    },
+    {
+      "id": "launch-ternary-bonsai-2-27b-abl",
+      "kind": "launch",
+      "label": "Ternary-Bonsai-2-27B-Abliterated-v2-PQ2_0-MTP",
+      "model_path": "E:\\AI_workspace\\01_models\\BoldingBuilds\\Ternary-Bonsai-2-27B-Abliterated-v2\\Ternary-Bonsai-2-27B-Abliterated-v2-PQ2_0-MTP.gguf",
+      "ctx": 32768,
+      "ngl": 99,
+      "cpu_moe": 30,
+      "kv_type": "q4_0",
+      "port": 8080,
+      "engine": "llama.cpp"
+    },
+    {
+      "id": "launch-ternary-bonsai-2-27b-pq2",
+      "kind": "launch",
+      "label": "Ternary-Bonsai-2-27B-PQ2_0",
+      "model_path": "E:\\AI_workspace\\01_models\\prism-ml\\Ternary-Bonsai-2-27B-gguf\\Ternary-Bonsai-2-27B-PQ2_0.gguf",
+      "ctx": 32768,
+      "ngl": 99,
+      "cpu_moe": 30,
+      "kv_type": "q4_0",
+      "port": 8080,
+      "engine": "llama.cpp"
+    },
+    {
+      "id": "launch-qwen3-5-9b-ud-q4-k-xl",
+      "kind": "launch",
+      "label": "Qwen3.5-9B-UD-Q4_K_XL",
+      "model_path": "E:\\AI_workspace\\01_models\\qwen3.5\\Qwen3.5-9B-MTP-GGUF\\Qwen3.5-9B-UD-Q4_K_XL.gguf",
+      "ctx": 32768,
+      "ngl": 99,
+      "cpu_moe": 30,
+      "kv_type": "q4_0",
+      "port": 8080,
+      "engine": "llama.cpp"
+    },
+    {
+      "id": "launch-ternary-bonsai-2-27b-ptq",
+      "kind": "launch",
+      "label": "Ternary-Bonsai-2-27B-PTQ1_0",
+      "model_path": "E:\\AI_workspace\\01_models\\prism-ml\\Ternary-Bonsai-2-27B-gguf\\Ternary-Bonsai-2-27B-PTQ1_0.gguf",
+      "ctx": 32768,
+      "ngl": 99,
+      "cpu_moe": 30,
+      "kv_type": "q4_0",
+      "port": 8080,
+      "engine": "llama.cpp"
+    },
+    {
+      "id": "launch-ternary-bonsai-2-27b-mmp",
+      "kind": "launch",
+      "label": "Ternary-Bonsai-2-27B-mmproj-Q8_0",
+      "model_path": "E:\\AI_workspace\\01_models\\prism-ml\\Ternary-Bonsai-2-27B-gguf\\Ternary-Bonsai-2-27B-mmproj-Q8_0.gguf",
+      "ctx": 32768,
+      "ngl": 99,
+      "cpu_moe": 30,
+      "kv_type": "q4_0",
+      "port": 8080,
+      "engine": "llama.cpp"
+    }
+  ]
+}

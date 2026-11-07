@@ -1,0 +1,910 @@
+{
+ "read_file": {
+  "type": "function",
+  "function": {
+   "name": "read_file",
+   "description": "读取本地文件内容",
+   "parameters": {
+    "type": "object",
+    "properties": {
+     "path": {
+      "type": "string",
+      "description": "文件绝对路径"
+     }
+    },
+    "required": [
+     "path"
+    ]
+   }
+  }
+ },
+ "write_file": {
+  "type": "function",
+  "function": {
+   "name": "write_file",
+   "description": "把内容写入本地文件",
+   "parameters": {
+    "type": "object",
+    "properties": {
+     "path": {
+      "type": "string"
+     },
+     "content": {
+      "type": "string"
+     }
+    },
+    "required": [
+     "path",
+     "content"
+    ]
+   }
+  }
+ },
+ "list_dir": {
+  "type": "function",
+  "function": {
+   "name": "list_dir",
+   "description": "列出目录下的文件",
+   "parameters": {
+    "type": "object",
+    "properties": {
+     "path": {
+      "type": "string"
+     }
+    },
+    "required": [
+     "path"
+    ]
+   }
+  }
+ },
+ "read_spreadsheet": {
+  "type": "function",
+  "function": {
+   "name": "read_spreadsheet",
+   "description": "读取电子表格",
+   "parameters": {
+    "type": "object",
+    "properties": {
+     "path": {
+      "type": "string"
+     },
+     "sheet": {
+      "type": "string"
+     }
+    },
+    "required": [
+     "path"
+    ]
+   }
+  }
+ },
+ "clean_data": {
+  "type": "function",
+  "function": {
+   "name": "clean_data",
+   "description": "清洗脏数据",
+   "parameters": {
+    "type": "object",
+    "properties": {
+     "path": {
+      "type": "string"
+     },
+     "rules": {
+      "type": "string",
+      "description": "清洗规则描述"
+     }
+    },
+    "required": [
+     "path"
+    ]
+   }
+  }
+ },
+ "run_analysis": {
+  "type": "function",
+  "function": {
+   "name": "run_analysis",
+   "description": "对数据跑分析并出图",
+   "parameters": {
+    "type": "object",
+    "properties": {
+     "input": {
+      "type": "string"
+     },
+     "metric": {
+      "type": "string"
+     },
+     "output": {
+      "type": "string"
+     }
+    },
+    "required": [
+     "input"
+    ]
+   }
+  }
+ },
+ "read_logs": {
+  "type": "function",
+  "function": {
+   "name": "read_logs",
+   "description": "读取日志文件",
+   "parameters": {
+    "type": "object",
+    "properties": {
+     "path": {
+      "type": "string"
+     },
+     "level": {
+      "type": "string"
+     }
+    },
+    "required": [
+     "path"
+    ]
+   }
+  }
+ },
+ "search_records": {
+  "type": "function",
+  "function": {
+   "name": "search_records",
+   "description": "在个人档案/记录中检索",
+   "parameters": {
+    "type": "object",
+    "properties": {
+     "query": {
+      "type": "string"
+     },
+     "category": {
+      "type": "string"
+     }
+    },
+    "required": [
+     "query"
+    ]
+   }
+  }
+ },
+ "read_calendar": {
+  "type": "function",
+  "function": {
+   "name": "read_calendar",
+   "description": "读取日历事件",
+   "parameters": {
+    "type": "object",
+    "properties": {
+     "start": {
+      "type": "string"
+     },
+     "end": {
+      "type": "string"
+     }
+    },
+    "required": []
+   }
+  }
+ },
+ "get_calendar": {
+  "type": "function",
+  "function": {
+   "name": "get_calendar",
+   "description": "查询指定日期的日程",
+   "parameters": {
+    "type": "object",
+    "properties": {
+     "date": {
+      "type": "string"
+     }
+    },
+    "required": []
+   }
+  }
+ },
+ "send_calendar_invite": {
+  "type": "function",
+  "function": {
+   "name": "send_calendar_invite",
+   "description": "发送会议邀请",
+   "parameters": {
+    "type": "object",
+    "properties": {
+     "to": {
+      "type": "string"
+     },
+     "title": {
+      "type": "string"
+     },
+     "start": {
+      "type": "string"
+     },
+     "end": {
+      "type": "string"
+     }
+    },
+    "required": [
+     "to",
+     "title"
+    ]
+   }
+  }
+ },
+ "book_appointment": {
+  "type": "function",
+  "function": {
+   "name": "book_appointment",
+   "description": "预约服务",
+   "parameters": {
+    "type": "object",
+    "properties": {
+     "service": {
+      "type": "string"
+     },
+     "datetime": {
+      "type": "string"
+     },
+     "location": {
+      "type": "string"
+     }
+    },
+    "required": [
+     "service",
+     "datetime"
+    ]
+   }
+  }
+ },
+ "book_room": {
+  "type": "function",
+  "function": {
+   "name": "book_room",
+   "description": "预订会议室",
+   "parameters": {
+    "type": "object",
+    "properties": {
+     "room": {
+      "type": "string"
+     },
+     "date": {
+      "type": "string"
+     },
+     "start": {
+      "type": "string"
+     },
+     "end": {
+      "type": "string"
+     }
+    },
+    "required": [
+     "room",
+     "date"
+    ]
+   }
+  }
+ },
+ "book_flight": {
+  "type": "function",
+  "function": {
+   "name": "book_flight",
+   "description": "预订航班",
+   "parameters": {
+    "type": "object",
+    "properties": {
+     "flight_no": {
+      "type": "string"
+     },
+     "date": {
+      "type": "string"
+     },
+     "passenger": {
+      "type": "string"
+     }
+    },
+    "required": [
+     "flight_no"
+    ]
+   }
+  }
+ },
+ "book_movie": {
+  "type": "function",
+  "function": {
+   "name": "book_movie",
+   "description": "预订电影票",
+   "parameters": {
+    "type": "object",
+    "properties": {
+     "movie": {
+      "type": "string"
+     },
+     "date": {
+      "type": "string"
+     },
+     "time": {
+      "type": "string"
+     },
+     "cinema": {
+      "type": "string"
+     },
+     "seats": {
+      "type": "integer"
+     }
+    },
+    "required": [
+     "movie"
+    ]
+   }
+  }
+ },
+ "search_flights": {
+  "type": "function",
+  "function": {
+   "name": "search_flights",
+   "description": "搜索航班",
+   "parameters": {
+    "type": "object",
+    "properties": {
+     "from": {
+      "type": "string"
+     },
+     "to": {
+      "type": "string"
+     },
+     "date": {
+      "type": "string"
+     }
+    },
+    "required": [
+     "from",
+     "to"
+    ]
+   }
+  }
+ },
+ "search_music_sheet": {
+  "type": "function",
+  "function": {
+   "name": "search_music_sheet",
+   "description": "搜索乐谱",
+   "parameters": {
+    "type": "object",
+    "properties": {
+     "title": {
+      "type": "string"
+     },
+     "instrument": {
+      "type": "string"
+     }
+    },
+    "required": [
+     "title"
+    ]
+   }
+  }
+ },
+ "search_restaurants": {
+  "type": "function",
+  "function": {
+   "name": "search_restaurants",
+   "description": "搜索餐厅",
+   "parameters": {
+    "type": "object",
+    "properties": {
+     "cuisine": {
+      "type": "string"
+     },
+     "location": {
+      "type": "string"
+     }
+    },
+    "required": [
+     "cuisine"
+    ]
+   }
+  }
+ },
+ "get_weather": {
+  "type": "function",
+  "function": {
+   "name": "get_weather",
+   "description": "查询天气",
+   "parameters": {
+    "type": "object",
+    "properties": {
+     "city": {
+      "type": "string"
+     },
+     "date": {
+      "type": "string"
+     }
+    },
+    "required": [
+     "city"
+    ]
+   }
+  }
+ },
+ "get_balance": {
+  "type": "function",
+  "function": {
+   "name": "get_balance",
+   "description": "查询银行账户余额",
+   "parameters": {
+    "type": "object",
+    "properties": {
+     "account": {
+      "type": "string"
+     }
+    },
+    "required": []
+   }
+  }
+ },
+ "get_phone_balance": {
+  "type": "function",
+  "function": {
+   "name": "get_phone_balance",
+   "description": "查询手机话费余额",
+   "parameters": {
+    "type": "object",
+    "properties": {
+     "phone": {
+      "type": "string"
+     }
+    },
+    "required": []
+   }
+  }
+ },
+ "set_alarm": {
+  "type": "function",
+  "function": {
+   "name": "set_alarm",
+   "description": "设置闹钟",
+   "parameters": {
+    "type": "object",
+    "properties": {
+     "time": {
+      "type": "string"
+     },
+     "label": {
+      "type": "string"
+     }
+    },
+    "required": [
+     "time"
+    ]
+   }
+  }
+ },
+ "track_order": {
+  "type": "function",
+  "function": {
+   "name": "track_order",
+   "description": "查询订单物流",
+   "parameters": {
+    "type": "object",
+    "properties": {
+     "order_id": {
+      "type": "string"
+     }
+    },
+    "required": [
+     "order_id"
+    ]
+   }
+  }
+ },
+ "track_package": {
+  "type": "function",
+  "function": {
+   "name": "track_package",
+   "description": "查询包裹物流",
+   "parameters": {
+    "type": "object",
+    "properties": {
+     "tracking_no": {
+      "type": "string"
+     }
+    },
+    "required": [
+     "tracking_no"
+    ]
+   }
+  }
+ },
+ "list_customers": {
+  "type": "function",
+  "function": {
+   "name": "list_customers",
+   "description": "列出客户名单",
+   "parameters": {
+    "type": "object",
+    "properties": {
+     "segment": {
+      "type": "string"
+     },
+     "limit": {
+      "type": "integer"
+     }
+    },
+    "required": []
+   }
+  }
+ },
+ "send_email": {
+  "type": "function",
+  "function": {
+   "name": "send_email",
+   "description": "发送邮件",
+   "parameters": {
+    "type": "object",
+    "properties": {
+     "to": {
+      "type": "string"
+     },
+     "subject": {
+      "type": "string"
+     },
+     "body": {
+      "type": "string"
+     }
+    },
+    "required": [
+     "to",
+     "subject"
+    ]
+   }
+  }
+ },
+ "send_email_batch": {
+  "type": "function",
+  "function": {
+   "name": "send_email_batch",
+   "description": "批量发送邮件",
+   "parameters": {
+    "type": "object",
+    "properties": {
+     "recipients": {
+      "type": "array",
+      "items": {
+       "type": "string"
+      }
+     },
+     "subject": {
+      "type": "string"
+     },
+     "body": {
+      "type": "string"
+     }
+    },
+    "required": [
+     "recipients",
+     "subject"
+    ]
+   }
+  }
+ },
+ "send_sms": {
+  "type": "function",
+  "function": {
+   "name": "send_sms",
+   "description": "发送短信",
+   "parameters": {
+    "type": "object",
+    "properties": {
+     "to": {
+      "type": "string"
+     },
+     "text": {
+      "type": "string"
+     }
+    },
+    "required": [
+     "to",
+     "text"
+    ]
+   }
+  }
+ },
+ "summarize": {
+  "type": "function",
+  "function": {
+   "name": "summarize",
+   "description": "把文本总结为要点",
+   "parameters": {
+    "type": "object",
+    "properties": {
+     "text": {
+      "type": "string"
+     },
+     "max_points": {
+      "type": "integer"
+     }
+    },
+    "required": [
+     "text"
+    ]
+   }
+  }
+ },
+ "extract_entities": {
+  "type": "function",
+  "function": {
+   "name": "extract_entities",
+   "description": "从文本中抽取实体(金额/日期/人名等)",
+   "parameters": {
+    "type": "object",
+    "properties": {
+     "text": {
+      "type": "string"
+     },
+     "types": {
+      "type": "array",
+      "items": {
+       "type": "string"
+      }
+     }
+    },
+    "required": [
+     "text"
+    ]
+   }
+  }
+ },
+ "translate": {
+  "type": "function",
+  "function": {
+   "name": "translate",
+   "description": "翻译文本",
+   "parameters": {
+    "type": "object",
+    "properties": {
+     "text": {
+      "type": "string"
+     },
+     "target_lang": {
+      "type": "string"
+     }
+    },
+    "required": [
+     "text",
+     "target_lang"
+    ]
+   }
+  }
+ },
+ "transcribe": {
+  "type": "function",
+  "function": {
+   "name": "transcribe",
+   "description": "语音转文字",
+   "parameters": {
+    "type": "object",
+    "properties": {
+     "audio_path": {
+      "type": "string"
+     },
+     "language": {
+      "type": "string"
+     }
+    },
+    "required": [
+     "audio_path"
+    ]
+   }
+  }
+ },
+ "text_to_speech": {
+  "type": "function",
+  "function": {
+   "name": "text_to_speech",
+   "description": "文字转语音",
+   "parameters": {
+    "type": "object",
+    "properties": {
+     "text": {
+      "type": "string"
+     },
+     "voice": {
+      "type": "string"
+     }
+    },
+    "required": [
+     "text"
+    ]
+   }
+  }
+ },
+ "convert_format": {
+  "type": "function",
+  "function": {
+   "name": "convert_format",
+   "description": "转换文件格式(CSV/JSON 等)",
+   "parameters": {
+    "type": "object",
+    "properties": {
+     "path": {
+      "type": "string"
+     },
+     "to": {
+      "type": "string"
+     }
+    },
+    "required": [
+     "path",
+     "to"
+    ]
+   }
+  }
+ },
+ "convert_pdf": {
+  "type": "function",
+  "function": {
+   "name": "convert_pdf",
+   "description": "PDF 转 Word",
+   "parameters": {
+    "type": "object",
+    "properties": {
+     "path": {
+      "type": "string"
+     },
+     "output": {
+      "type": "string"
+     }
+    },
+    "required": [
+     "path"
+    ]
+   }
+  }
+ },
+ "compress_folder": {
+  "type": "function",
+  "function": {
+   "name": "compress_folder",
+   "description": "压缩文件夹为 zip",
+   "parameters": {
+    "type": "object",
+    "properties": {
+     "path": {
+      "type": "string"
+     },
+     "output": {
+      "type": "string"
+     }
+    },
+    "required": [
+     "path"
+    ]
+   }
+  }
+ },
+ "compress_image": {
+  "type": "function",
+  "function": {
+   "name": "compress_image",
+   "description": "压缩图片",
+   "parameters": {
+    "type": "object",
+    "properties": {
+     "path": {
+      "type": "string"
+     },
+     "quality": {
+      "type": "integer"
+     }
+    },
+    "required": [
+     "path"
+    ]
+   }
+  }
+ },
+ "download_video": {
+  "type": "function",
+  "function": {
+   "name": "download_video",
+   "description": "下载视频",
+   "parameters": {
+    "type": "object",
+    "properties": {
+     "url": {
+      "type": "string"
+     },
+     "output": {
+      "type": "string"
+     }
+    },
+    "required": [
+     "url"
+    ]
+   }
+  }
+ },
+ "format_code": {
+  "type": "function",
+  "function": {
+   "name": "format_code",
+   "description": "格式化代码",
+   "parameters": {
+    "type": "object",
+    "properties": {
+     "path": {
+      "type": "string"
+     },
+     "language": {
+      "type": "string"
+     }
+    },
+    "required": [
+     "path"
+    ]
+   }
+  }
+ },
+ "generate_report": {
+  "type": "function",
+  "function": {
+   "name": "generate_report",
+   "description": "生成报告文件",
+   "parameters": {
+    "type": "object",
+    "properties": {
+     "title": {
+      "type": "string"
+     },
+     "source": {
+      "type": "string"
+     },
+     "output": {
+      "type": "string"
+     }
+    },
+    "required": [
+     "title"
+    ]
+   }
+  }
+ },
+ "shorten_url": {
+  "type": "function",
+  "function": {
+   "name": "shorten_url",
+   "description": "生成短链接",
+   "parameters": {
+    "type": "object",
+    "properties": {
+     "url": {
+      "type": "string"
+     }
+    },
+    "required": [
+     "url"
+    ]
+   }
+  }
+ },
+ "web_search": {
+  "type": "function",
+  "function": {
+   "name": "web_search",
+   "description": "联网搜索",
+   "parameters": {
+    "type": "object",
+    "properties": {
+     "query": {
+      "type": "string"
+     },
+     "max_results": {
+      "type": "integer"
+     }
+    },
+    "required": [
+     "query"
+    ]
+   }
+  }
+ }
+}

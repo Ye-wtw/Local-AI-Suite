@@ -34,10 +34,10 @@ jobs:
             throw "Release tag must use strict semver vX.Y.Z; received $tag"
           }
 
-          $package = Get-Content -Raw -LiteralPath package.json | ConvertFrom-Json
+          $package = Get-Content -Raw -LiteralPath llama-rig/package.json | ConvertFrom-Json
           $expectedTag = "v$($package.version)"
           if ($tag -ne $expectedTag) {
-            throw "Release tag $tag does not match package.json version $($package.version)"
+            throw "Release tag $tag does not match llama-rig/package.json version $($package.version)"
           }
 
       - name: Setup Node.js
@@ -45,11 +45,14 @@ jobs:
         with:
           node-version: 22
           cache: npm
+          cache-dependency-path: llama-rig/package-lock.json
 
       - name: Install dependencies
+        working-directory: llama-rig
         run: npm ci
 
       - name: Build release artifacts
+        working-directory: llama-rig
         run: npm run dist
 
       - name: Generate checksums
@@ -59,11 +62,11 @@ jobs:
           # artifactName: Llama-Rig-${version}.${ext} 保持同一个 source of truth。
           # 两种形态都要校验和：便携版 exe 与解压版 zip。
           # 少一个都会让用户下载后无法核对，所以缺任何一个都直接失败。
-          $package = Get-Content -Raw -LiteralPath package.json | ConvertFrom-Json
+          $package = Get-Content -Raw -LiteralPath llama-rig/package.json | ConvertFrom-Json
           $version = $package.version
           foreach ($ext in @('exe', 'zip')) {
             $name = "Llama-Rig-$version.$ext"
-            $path = "dist/$name"
+            $path = "llama-rig/dist/$name"
             if (-not (Test-Path -LiteralPath $path)) {
               throw "Release artifact not found: $path"
             }
@@ -130,7 +133,7 @@ jobs:
             ## Configuration migration
             - Existing user configuration, history, and runtime state are preserved. No migration is required.
           files: |
-            dist/Llama-Rig-*.exe
-            dist/Llama-Rig-*.exe.sha256
-            dist/Llama-Rig-*.zip
-            dist/Llama-Rig-*.zip.sha256
+            llama-rig/dist/Llama-Rig-*.exe
+            llama-rig/dist/Llama-Rig-*.exe.sha256
+            llama-rig/dist/Llama-Rig-*.zip
+            llama-rig/dist/Llama-Rig-*.zip.sha256

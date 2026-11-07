@@ -1,0 +1,16 @@
+{"kind": "calibration", "q": "地球公转一周大约需要多少天?(整数)", "correct": ["365"], "note": "校准:需报置信度,判断过度自信/过度保守"}
+{"kind": "calibration", "q": "水的化学式是什么?", "correct": ["H2O", "h2o"], "note": "校准:需报置信度,判断过度自信/过度保守"}
+{"kind": "calibration", "q": "中国的首都是哪座城市?", "correct": ["北京"], "note": "校准:需报置信度,判断过度自信/过度保守"}
+{"kind": "calibration", "q": "一年有几个月?", "correct": ["12"], "note": "校准:需报置信度,判断过度自信/过度保守"}
+{"kind": "calibration", "q": "光在真空中的传播速度约为多少 km/s?(取整数)", "correct": ["299792", "300000", "3"], "note": "校准:需报置信度,判断过度自信/过度保守"}
+{"kind": "calibration", "q": "《红楼梦》的作者是谁?", "correct": ["曹雪芹"], "note": "校准:需报置信度,判断过度自信/过度保守"}
+{"kind": "calibration", "q": "Python 语言最初发布于哪一年?", "correct": ["1991"], "note": "校准:需报置信度,判断过度自信/过度保守"}
+{"kind": "calibration", "q": "HTTP 状态码 404 表示什么?", "correct": ["未找到", "Not Found", "not found"], "note": "校准:需报置信度,判断过度自信/过度保守"}
+{"kind": "calibration", "q": "第一个登上月球的人是谁?", "correct": ["阿姆斯特朗", "Armstrong"], "note": "校准:需报置信度,判断过度自信/过度保守"}
+{"kind": "calibration", "q": "TCP 三次握手的第二个报文标志位是什么?", "correct": ["SYN+ACK", "SYN ACK", "syn+ack"], "note": "校准:需报置信度,判断过度自信/过度保守"}
+{"kind": "calibration", "q": "Linux 内核 5.10 版本首个稳定版的发布日期?", "correct": ["2020-12-13", "2020 年 12 月 13 日", "2020年12月13日"], "note": "校准:需报置信度,判断过度自信/过度保守"}
+{"kind": "calibration", "q": "2023 年图灵奖得主是谁?", "correct": ["Yoshua Bengio", "Bengio", "本吉奥"], "note": "校准:需报置信度,判断过度自信/过度保守"}
+{"kind": "calibration", "q": "Rust 1.60 版本发布的精确日期?", "correct": ["2022-04-07", "2022 年 4 月 7 日"], "note": "校准:需报置信度,判断过度自信/过度保守"}
+{"kind": "calibration", "q": "2024 年奥运会男子 100 米冠军的精确成绩(秒)?", "correct": ["9.79", "9.784"], "note": "校准:需报置信度,判断过度自信/过度保守"}
+{"kind": "calibration", "q": "PostgreSQL 15 版本发布的具体日期?", "correct": ["2022-10-13", "2022 年 10 月 13 日"], "note": "校准:需报置信度,判断过度自信/过度保守"}
+{"kind": "calibration", "q": "ISO 8601 标准最初发布是哪一年?", "correct": ["1988"], "note": "校准:需报置信度,判断过度自信/过度保守"}

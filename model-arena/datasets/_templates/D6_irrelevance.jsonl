@@ -1,0 +1,8 @@
+{"user": "帮我订一张明天去上海的机票。", "tools": ["get_weather", "send_email", "summarize"], "should": [], "must_not": ["get_weather", "send_email", "summarize"], "reason": "没有订票类工具,应说明无法完成"}
+{"user": "把 E:/docs/movie.pdf 的字体换成宋体。", "tools": ["convert_pdf", "read_file", "send_email"], "should": [], "must_not": [], "reason": "无改字体工具;调 convert_pdf 探索路径可接受,不得谎称已换字体", "expect_honest_failure": true}
+{"user": "帮我算一下 2847 × 391 等于多少。", "tools": ["web_search", "send_email", "get_weather"], "should": [], "must_not": ["web_search", "send_email", "get_weather"], "reason": "纯计算,不需要任何工具"}
+{"user": "把这个 Excel 里的公式改成绝对引用。", "tools": ["read_spreadsheet", "clean_data", "compress_folder"], "should": [], "must_not": ["read_spreadsheet", "clean_data", "compress_folder"], "reason": "没有编辑公式的工具"}
+{"user": "我想听周杰伦的歌。", "tools": ["search_music_sheet", "track_package", "get_balance"], "should": [], "must_not": ["search_music_sheet", "track_package", "get_balance"], "reason": "乐谱工具不能放歌,无播放工具"}
+{"user": "帮我把这段话翻译成法语。", "tools": ["text_to_speech", "set_alarm", "shorten_url"], "should": [], "must_not": ["text_to_speech", "set_alarm", "shorten_url"], "reason": "没有翻译工具"}
+{"user": "我的电脑开不了机,帮我看看是什么问题。", "tools": ["read_logs", "clean_data", "get_weather"], "should": [], "must_not": ["read_logs", "clean_data", "get_weather"], "reason": "开机故障无对应工具,读日志解决不了"}
+{"user": "帮我把这张图片里的人脸模糊掉。", "tools": ["compress_image", "convert_pdf", "send_email"], "should": [], "must_not": ["compress_image", "convert_pdf", "send_email"], "reason": "压缩图片不等于模糊人脸,无对应工具"}

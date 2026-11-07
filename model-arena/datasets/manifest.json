@@ -1,0 +1,100 @@
+{
+  "project": "06_model-arena",
+  "version": "0.1",
+  "generated": null,
+  "dims": {
+    "D1": {
+      "files": [
+        "D1_speed.json"
+      ],
+      "rows": 1,
+      "note": "speed config (JSON)"
+    },
+    "D2": {
+      "file": "datasets/full/D2_full.jsonl",
+      "rows": 552,
+      "hash": "d24b5a95100b",
+      "sources": {
+        "selfmade": 75,
+        "selfmade-gpqa-style": 1,
+        "public:gpqa": 196,
+        "public:mmlu": 280
+      }
+    },
+    "D3": {
+      "file": "datasets/full/D3_full.jsonl",
+      "rows": 436,
+      "hash": "0d956a75f3cd",
+      "sources": {
+        "selfmade": 135,
+        "selfmade-aime-style": 1,
+        "public:math500": 300
+      }
+    },
+    "D4": {
+      "file": "datasets/full/D4_full.jsonl",
+      "rows": 38,
+      "hash": "3ed87f0aeb84",
+      "sources": {
+        "selfmade": 37,
+        "humaneval+": 1
+      }
+    },
+    "D5": {
+      "file": "datasets/full/D5_full.jsonl",
+      "rows": 401,
+      "hash": "b7738114c35b",
+      "sources": {
+        "ifeval-style": 100,
+        "selfmade": 1,
+        "public:ifeval": 300
+      }
+    },
+    "D6": {
+      "file": "datasets/full/D6_full.jsonl",
+      "rows": 147,
+      "hash": "86d10f525d9f",
+      "sources": {
+        "selfmade": 46,
+        "bfcl-style": 1,
+        "public:bfcl": 100
+      }
+    },
+    "D7": {
+      "file": "datasets/full/D7_full.jsonl",
+      "rows": 30,
+      "hash": "4919a738cf86",
+      "sources": {
+        "selfmade": 2,
+        "selfmade-needle": 28
+      }
+    },
+    "D8": {
+      "file": "datasets/full/D8_full.jsonl",
+      "rows": 78,
+      "hash": "9862eafcfe7a",
+      "sources": {
+        "selfmade": 77,
+        "aa-omniscience-style": 1
+      }
+    },
+    "D9": {
+      "file": "datasets/full/D9_full.jsonl",
+      "rows": 32,
+      "hash": "a125ef4739a2",
+      "sources": {
+        "user-dsh-sessions": 32
+      }
+    },
+    "D10": {
+      "file": "datasets/full/D10_full.jsonl",
+      "rows": 71,
+      "hash": "3715d1ff4009",
+      "sources": {
+        "selfmade-chess": 71
+      }
+    }
+  },
+  "integrity": {},
+  "total_rows": 1786
+}

@@ -1,0 +1,118 @@
+{
+  "_comment": "A/B 对照实验计划。参数用角色名表达,由 runner/engine_profiles.py 翻译成具体引擎的命令行;引擎不支持的角色会报错停止,不会静默丢弃。",
+  "_value_types": "角色值优先写字符串。engine_profiles.role_to_argv 用 'value in (False, None)' 判断空值,而 Python 中 0 == False,所以整数 0 会被当成不设置而静默丢掉;数值写成 \"0\" 这类字符串可避免。",
+  "version": 1,
+  "name": "vertical-slice",
+  "seed": 20261010,
+  "subset": "full",
+  "speed_probe": {
+    "prompt_tokens": 1200,
+    "output_tokens": 200,
+    "repeats": 3
+  },
+  "blocks": [
+    {
+      "id": "general",
+      "label": "通用",
+      "dimension": "general",
+      "dim": "D2",
+      "n": 25
+    },
+    {
+      "id": "tools",
+      "label": "工具",
+      "dimension": "tools",
+      "dim": "D6",
+      "n": 25
+    },
+    {
+      "id": "anti_hallucination",
+      "label": "抗幻觉",
+      "dimension": "anti_hallucination",
+      "dim": "D8",
+      "n": 25
+    },
+    {
+      "id": "long_16k",
+      "label": "长上下文 16k",
+      "dimension": "long_context",
+      "dim": "D7",
+      "n": 10,
+      "min_ctx_lte": 17024
+    },
+    {
+      "id": "long_64k",
+      "label": "长上下文 64k",
+      "dimension": "long_context",
+      "dim": "D7",
+      "n": 10,
+      "min_ctx_gt": 17024,
+      "min_ctx_lte": 65024
+    },
+    {
+      "id": "long_128k",
+      "label": "长上下文 128k",
+      "dimension": "long_context",
+      "dim": "D7",
+      "n": 10,
+      "min_ctx_gt": 65024
+    }
+  ],
+  "configs": {
+    "A": {
+      "label": "llama.cpp / ctx 32768 / KV f16",
+      "engine": "llama.cpp",
+      "mode": "launch",
+      "model": "A-ctx32k-f16",
+      "base_url": "http://127.0.0.1:8080",
+      "mock": {
+        "port": 8099,
+        "acc": 0.8
+      },
+      "roles": {
+        "model": "A-ctx32k-f16",
+        "context": 32768,
+        "gpu_layers": 99,
+        "kv_k": "f16",
+        "kv_v": "f16",
+        "temp": "0",
+        "host": "127.0.0.1",
+        "port": 8080,
+        "alias": "A-ctx32k-f16"
+      }
+    },
+    "B": {
+      "label": "llama.cpp / ctx 32768 / KV q8_0",
+      "engine": "llama.cpp",
+      "mode": "launch",
+      "model": "B-ctx32k-q8",
+      "base_url": "http://127.0.0.1:8081",
+      "mock": {
+        "port": 8100,
+        "acc": 0.7
+      },
+      "roles": {
+        "model": "A-ctx32k-f16",
+        "context": 32768,
+        "gpu_layers": 99,
+        "kv_k": "q8_0",
+        "kv_v": "q8_0",
+        "temp": "0",
+        "host": "127.0.0.1",
+        "port": 8081,
+        "alias": "B-ctx32k-q8"
+      }
+    }
+  },
+  "cloud": [
+    {
+      "endpoint": "deepseek-flash",
+      "label": "云端 deepseek-flash"
+    },
+    {
+      "endpoint": "deepseek-pro",
+      "label": "云端 deepseek-pro"
+    }
+  ],
+  "cloud_note": "云端端点从 config/endpoints.json 读;API key 只从环境变量 DEEPSEEK_API_KEY 读,缺 key 时跳过并记录原因,任何情况下都不写盘。"
+}

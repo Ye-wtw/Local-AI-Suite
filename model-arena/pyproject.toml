@@ -1,0 +1,26 @@
+[project]
+name = "model-arena"
+version = "2.0.0"
+description = "本地与云端大模型的多维度能力对照评测：可执行的题目、规则化判分、可复现的对照实验"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [{ name = "contributors" }]
+keywords = ["llm", "evaluation", "benchmark", "llama.cpp", "local-llm"]
+
+# 核心零依赖：只用标准库。可选增强见 requirements.txt。
+dependencies = []
+
+[project.optional-dependencies]
+gui = ["pywebview>=4.0"]
+mine = ["zstandard>=0.22"]
+
+[project.urls]
+Homepage = "https://github.com/Ye-wtw/Local-AI-Suite/tree/main/model-arena"
+
+[tool.setuptools]
+packages = ["runner", "scripts", "tools"]
+
+[tool.ruff]
+line-length = 110
+target-version = "py310"
