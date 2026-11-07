@@ -6,7 +6,7 @@
 
 文件二定档的 build 10816 在：
 
-    E:\AI_workspace\00_models_Base\llama.cpp\bin\llama-server.exe
+    <llama.cpp 目录>\bin\llama-server.exe
     版本 0.4.0-dev (build 10816, commit 427291b5b)  <- 与文件二记载完全一致
 
 ⛔ **不在 PATH 上**。全盘还有 4 个 llama-server.exe，版本各不相同：

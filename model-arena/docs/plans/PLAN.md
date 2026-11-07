@@ -1,6 +1,6 @@
-# 06_model-arena 项目计划书
+# model-arena 项目计划书
 
-> 版本 v0.2 ｜ 更新 2026-10-10 ｜ 项目路径 `E:\AI_workspace\06_model-arena`
+> 版本 v0.2 ｜ 更新 2026-10-10 ｜ 项目路径 `model-arena`
 > 定位:本地 / 云端 LLM 多维能力评测系统。可为本地模型建立可复现的能力档案,并与云端 API 标杆对比。
 
 ---
@@ -121,7 +121,7 @@
 ## 四、系统架构
 
 ```
-06_model-arena/
+model-arena/
 ├── config/
 │   ├── endpoints.json      端点配置(llama.cpp / ollama / mock / deepseek)
 │   ├── weights.json        维度权重 + 5 套预设;weight=0 表示仅诊断
@@ -891,9 +891,9 @@ GPQA 单题输出 9,200 token(我按 2,000 估的)。
 ### 启动推理服务(参考,来自已验证配置)
 
 ```bash
-cd E:\AI_workspace\00_models_Base\llama.cpp\bin
+cd <llama.cpp 目录>\bin
 llama-server.exe ^
- --model "E:\AI_workspace\01_models\qwen3.5\Qwen3.5-9B-MTP-GGUF\Qwen3.5-9B-UD-Q4_K_XL.gguf" ^
+ --model "<你的模型目录>\Qwen3.5-9B-UD-Q4_K_XL.gguf" ^
  --host 127.0.0.1 --port 8080 --ctx-size 8192 --n-gpu-layers 99 ^
  --threads 12 --alias Qwen3.5-9B --reasoning off ^
  --temp 0.6 --top-p 0.95 --top-k 20 --min-p 0.05

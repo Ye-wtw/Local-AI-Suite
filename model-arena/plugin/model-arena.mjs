@@ -24,6 +24,11 @@
  *   arena_sweep      show the parameter-sweep plan and cost
  */
 
+import path from 'node:path'
+import { fileURLToPath } from 'node:url'
+
+const HERE = path.dirname(fileURLToPath(import.meta.url))
+
 export const name = 'model-arena'
 
 /** Only the subprocess service is needed; this plugin registers tools and runs CLIs. */
@@ -31,11 +36,18 @@ export const inject = ['subprocess', 'tools']
 
 const NL = '\n'
 
-/** Resolve the arena project root. Config wins; otherwise use the known workspace path. */
+/**
+ * Resolve the arena project root. Config wins; otherwise the checkout this file lives in
+ * (the plugin sits in `<project>/plugin/`), so no machine-specific path is baked in.
+ * Installed-as-copy deployments always carry `projectRoot` in the loader entry — see
+ * `plugin/install_plugin.py`. MODEL_ARENA_ROOT is available for anything in between.
+ */
 function projectRoot(config) {
   const fromConfig = config?.projectRoot
   if (typeof fromConfig === 'string' && fromConfig.length > 0) return fromConfig
-  return 'E:\\AI_workspace\\06_model-arena'
+  const fromEnv = process.env.MODEL_ARENA_ROOT
+  if (typeof fromEnv === 'string' && fromEnv.length > 0) return fromEnv
+  return path.resolve(HERE, '..')
 }
 
 /** Run a python CLI inside the project and return {stdout, stderr, code}. */
