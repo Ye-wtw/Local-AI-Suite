@@ -1,7 +1,7 @@
-# HANDOFF · model-arena 交接文档
+# HANDOFF · 06_model-arena 交接文档
 
 > 更新：2026-11-02　|　**新会话接手只读这一份就够**
-> 项目在 `model-arena\`
+> 项目在 `E:\AI_workspace\06_model-arena\`
 
 ---
 
@@ -26,9 +26,9 @@
 | 程序生成维度 | D11 视觉 43 题 / D12 压缩 24 场景 |
 | 公开基准 | 2037 题（9 个权威集） |
 | **题库合计** | **4054 + 67 题** |
-| runner 模块 | 89 个（新增 perf.py / run_all.py / test_judges.py） |
+| runner 模块 | 92 个（新增 perf.py / run_all.py / test_judges.py / test_judges_extra.py） |
 | scripts 生成器 | 24 个（新增 filter_d3_level / gen_d4_lcb） |
-| 结果文件 | 425 个 |
+| 结果文件 | 609 个（含 rescore 产生的 `*_rescored.json`） |
 | 入口文档 | 根目录 README.md + AGENTS.md，其余在 docs/ |
 | 审计文档 | 13 个（docs/audits/） |
 
@@ -282,7 +282,7 @@ D11（视觉）从 `datasets/fixtures/vision` **程序生成图片**，D12（压
 ## 2. 怎么跑起来
 
 ```bash
-cd model-arena
+cd E:\AI_workspace\06_model-arena
 
 # 0) 交接检查（一条命令验 8 项）
 python runner/handoff_check.py
@@ -628,7 +628,7 @@ python runner/run.py --endpoint local --suite reliability --no-resume
 接手新会话，**只跑一条命令**：
 
 ```bash
-cd model-arena
+cd E:\AI_workspace\06_model-arena
 python runner/handoff_check.py
 ```
 
@@ -818,7 +818,7 @@ tar -czf model-arena-YYYYMMDD.tar.gz \
 | `config/machine.json` | — | `python doctor.py --fix` |
 
 **独立分发副本**（与开发目录隔离，跑测不污染开发结果）：
-作者本机另有一份**独立分发副本**（不在本仓库内），含 `分发包使用说明.md`。
+`E:\AI_workspace\06_model-arena-dist`，含 `分发包使用说明.md`。
 
 ### 14.4 这一轮修掉的 6 个 bug（全部是"真跑才暴露"）
 
@@ -878,7 +878,90 @@ python runner/test_judges.py   # exit 0 = 全过
 > **教训**：修完判分器要**注入 bug 验证测试能抓到**，
 > 否则"29 项全过"可能只是因为测试根本没覆盖到那行。
 
+### 14.5b 第二批判分器测试 `runner/test_judges_extra.py`（99 项）与一个真 bug
+
+第一批只覆盖 4 个判分器，而 `runner/` 下有 9 个。第二批补齐剩下 6 个：
+
+| 组 | 断言 | 钉住什么 |
+|---|---|---|
+| D10 chess | 14 | 四子类自洽 / `answer:` 行优先于题面 `e2e4` 举例 / `Answer:**` 空行跳过 / 起点格不算目标格 |
+| D7 longctx | 11 | 编造编号被抓并列进 `fabricated` / 跨文档矛盾必须全中 |
+| D9 d9_judge | 11 | 5 种 check 语义 + **32 条 baseline 全自洽** |
+| D6 agent | 10 | 缺调 / 越权 / 参数错 / 「信息不足却谎称完成」 |
+| D8 reliability | 15 | 「不能撕破脸」绕开拒答 / 更名施压信 / 注入泄露与复读 / 编造 / 自信的错误 |
+| D5 ifeval+checkers | 22 | no_comma 真会拦人 / JSON 字段名错时判错 / MCQ 字母数字括号 / **空规则集与畸形检查项** |
+| public 路由 | 13 | 9 基准 scoring 标签不重复 / 代码题正误实现 |
+| 版本指纹 | 3 | **所有判分器文件都进 `judge_version`** |
+
+```bash
+python runner/test_judges.py        # 29 项
+python runner/test_judges_extra.py  # 99 项
+```
+
+#### 第二批抓到的真 bug：空规则集被当成满分
+
+写测试时先做一次探针，结果是 **`run_checkers(None)` 返回 `(True, [])`** ——
+`all([])` 是 `True`。而 `D5_full.jsonl` 里 300 条 `public-ifeval` 只带
+`expect.instruction_id_list`（该由 `ifeval_judge` 判），**没有 `checkers`**。
+`suite_instruction` 却无条件调 `run_checkers`，于是这 300 题**任何回答都判对**。
+
+录在盘上的证据：
+
+```
+results/D5_instruction_queue_20261105-053607-... .json
+  public-ifeval  correct=300/300   checker_results=[]     ← 空规则集给的满分
+```
+
+用当前判分器重算同一批回答：
+
+| | 原记录 | 重算后 |
+|---|---|---|
+| D5 总分 | 397/401 = 99.0% | **310/401 = 77.3%** |
+| public-ifeval | 300/300 = 100% | **213/300 = 71.0%** |
+
+**22 个百分点的差距，全部来自「没查也算过」。**
+
+修法（三处）：
+
+1. `checkers.run_checkers`：空列表 → `(False, [no checkers defined])`。
+   空规则集是**失败**，不是通过。
+2. `run.py` 新增 `_judge_d5(row, text)`：**按 `expect` 形状分派** ——
+   有 `instruction_id_list` 走 IFEval，有 `checkers` 走本项校验器。
+   `suite_instruction`、`_judge_for`、`rescore.py`、`retry_wrong.py` 四处统一走它。
+3. `checkers.check_one`：缺 `value` 的畸形检查项判错并说明原因，
+   不再抛 `KeyError` 打挂整轮跑测（实测 `type=contains` 无 value 会崩）。
+
+#### 顺带修掉的第二个 bug：改判分器不改变版本号
+
+`judge_version.py` 的 `CORE_FILES` 里**没有 `checkers.py`**。
+所以上面那个修改让 D5 翻转 300 题，而 `judge_version()` 一字未变 ——
+唯一用来发现静默重算的控件看不见它。
+
+现在把 `checkers.py` 加进 `CORE_FILES`，并加一条测试断言
+「磁盘上每个 `*judge*.py` 都必须在指纹列表里」。
+
+- 修复前 core 指纹：`e33116660747`
+- 修复后 core 指纹：`e662da3dfd2e`
+
+**所以这次的历史数据必须重算**（D5 的 `_rescored` 文件已生成）。
+
+#### 注入验证
+
+把这行改回 `return True`，`test_judges_extra.py` 立刻 **exit 1**：
+
+```
+FAIL checkers 空列表判错
+FAIL checkers None 判错
+```
+
+恢复后 exit 0（99/99）。**这条测试确实覆盖到那一行**，不是摆设。
+
 ### 14.6 接手时注意
+
+- ⚠ **2026-11-08 修掉的两个判分器 bug 让 D5 历史数字作废**。
+  `results/` 里 D5 的 `*_rescored.json` 才是当前判分器下的正确数字
+  （D5 总分 99.0% → 77.3%）；不带 `_rescored` 的旧文件保留但不要拿来做结论。
+  core 判分器指纹已从 `e33116660747` 变为 `e662da3dfd2e`，跨指纹的分数不可直接比较。
 
 - `config/machine.json` / `profiles.json` / `models.json` 是**本机配置**，不进版本库。
   doctor 会提示；`--fix` 从 `*.example.json` 生成模板。

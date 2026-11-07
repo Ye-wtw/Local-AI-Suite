@@ -30,9 +30,15 @@ import os
 HERE = os.path.dirname(os.path.abspath(__file__))
 
 # Files whose content defines what a score means, for EVERY dimension.
+#
+# checkers.py belongs here. It was missing, so the empty-checkers pass through
+# run_checkers() changed D5 verdicts for 300 rows while judge_version() stayed
+# byte-identical - the one control meant to catch a silent re-scoring could not
+# see it. A judge file that is not hashed is a judge change that ships unflagged.
 CORE_FILES = [
-    "judge.py", "reliability_judge.py", "code_judge.py", "d9_judge.py",
-    "chess_judge.py", "longctx_judge.py", "d9_exec.py", "agent_judge.py",
+    "judge.py", "checkers.py", "reliability_judge.py", "code_judge.py",
+    "d9_judge.py", "chess_judge.py", "longctx_judge.py", "d9_exec.py",
+    "agent_judge.py",
 ]
 
 # Files reachable by one suite only. Editing one of these must not invalidate

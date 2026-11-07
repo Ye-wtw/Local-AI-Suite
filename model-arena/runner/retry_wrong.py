@@ -87,8 +87,9 @@ def judge(dim, r, text, rec_old):
     if dim == "D4":
         return judge_code(r, text)
     if dim == "D5":
-        passed, _res = run_checkers(r.get("expect", {}).get("checkers"), text)
-        return {"correct": bool(passed)}
+        import run as _R
+        passed, _res = _R._judge_d5(r, text)
+        return {"correct": bool(passed), "reason": str(_res.get("reason", ""))[:60]}
     if dim == "D6":
         return judge_agent(r, rec_old.get("result") or {}, text)
     if dim == "D8":

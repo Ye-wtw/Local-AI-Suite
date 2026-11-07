@@ -56,9 +56,11 @@ def rescore_one(path):
         elif dim == "D4":
             v = judge_code(q, r.get("response") or "")
         elif dim == "D5":
-            passed, _x = run_checkers(q.get("expect", {}).get("checkers"),
-                                      r.get("response") or "")
-            v = {"correct": bool(passed)}
+            # 按 expect 形状分派：checkers 走本项目校验器，instruction_id_list 走 IFEval。
+            # 旧代码一律用 run_checkers，300 条 public-IFEval 因此被空规则集判成通过。
+            import run as _R
+            passed, _x = _R._judge_d5(q, r.get("response") or "")
+            v = {"correct": bool(passed), "reason": str(_x.get("reason", ""))[:60]}
         elif dim == "D6":
             # run.py 传的 result 是 {"text","tool_calls","latency_s"}。
             # 直接传 {} 会让判分器看不到任何工具调用 -> 全判"漏调用",

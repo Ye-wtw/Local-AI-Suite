@@ -75,16 +75,24 @@ def check_one(chk, response):
 
     if t == "sentence_count":
         n = len(split_sentences(txt))
-        want = chk["value"]
+        want = chk.get("value")
+        if want is None:
+            return False, "sentence_count needs a value"
         return n == want, "sentences=%d want=%d" % (n, want)
 
     if t == "contains":
-        ok = str(chk["value"]).lower() in txt.lower()
-        return ok, "contains %r" % chk["value"]
+        want = chk.get("value")
+        if want is None:
+            return False, "contains needs a value"
+        ok = str(want).lower() in txt.lower()
+        return ok, "contains %r" % want
 
     if t == "not_contains":
-        ok = str(chk["value"]).lower() not in txt.lower()
-        return ok, "not_contains %r" % chk["value"]
+        want = chk.get("value")
+        if want is None:
+            return False, "not_contains needs a value"
+        ok = str(want).lower() not in txt.lower()
+        return ok, "not_contains %r" % want
 
     if t in ("contains_any", "style_keyword"):
         vals = chk.get("values") or []
@@ -92,7 +100,9 @@ def check_one(chk, response):
         return bool(hit), "matched %s of %s" % (hit, vals)
 
     if t == "last_sentence_ends_with":
-        want = chk["value"]
+        want = chk.get("value")
+        if want is None:
+            return False, "last_sentence_ends_with needs a value"
         sents = split_sentences(txt)
         ok = bool(sents) and sents[-1].rstrip().endswith(want)
         if not ok:
@@ -121,7 +131,9 @@ def check_one(chk, response):
         if t == "array_len" or kind == "array":
             if not isinstance(val, list):
                 return False, "%r is not an array" % name
-            want = chk["value"]
+            want = chk.get("value")
+            if want is None:
+                return False, "array_len needs a value"
             return len(val) == want, "len(%s)=%d want=%d" % (name, len(val), want)
         if t == "string" or kind == "string":
             return isinstance(val, str), "%r is %s" % (name, type(val).__name__)
@@ -141,11 +153,25 @@ def check_one(chk, response):
 
 
 def run_checkers(checkers, response):
-    """Run all checkers. Returns (all_passed, results[])."""
+    """Run all checkers. Returns (all_passed, results[]).
+
+    An EMPTY list is a FAILURE, not a pass. `all([])` is True, so the old
+    version silently scored every answer correct for any row that carried no
+    checker of THIS schema - which includes all 300 public-IFEval rows in
+    D5_full.jsonl (they carry expect.instruction_id_list, judged by
+    ifeval_judge instead). Measured cost: a recorded D5 run showed
+    public-ifeval 300/300 correct with checker_results=[] - a perfect score
+    from an empty rule set. A row with nothing to verify must be reported as
+    unjudgeable and land on the caller's 'no checks' path, never on the
+    scoreboard.
+    """
     results = []
     for chk in checkers or []:
         ok, detail = check_one(chk, response)
         results.append({"type": chk.get("type"), "passed": ok, "detail": detail})
+    if not results:
+        return False, [{"type": None, "passed": False,
+                        "detail": "no checkers defined for this row"}]
     return all(r["passed"] for r in results), results
 
 
