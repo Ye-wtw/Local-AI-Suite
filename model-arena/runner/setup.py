@@ -112,7 +112,7 @@ def check_public():
     if have:
         return True, "%s 公开基准: %d 个来源" % (OK, have), ""
     return False, "%s 公开基准未下载" % WARN, \
-        "运行 python scripts/fetch_public.py 下载(需要网络,约 160 MB)"
+        "运行 python scripts/fetch_bench.py 下载(需要网络,约 160 MB)"
 
 
 def main():
@@ -177,7 +177,7 @@ def main():
     if not results.get("题库"):
         print("    1. 生成题库:  python scripts/gen_datasets.py && python scripts/build_manifest.py")
     if not results.get("公开基准"):
-        print("    %d. 下载公开基准:  python scripts/fetch_public.py" % (2 if not results.get("题库") else 1))
+        print("    %d. 下载公开基准:  python scripts/fetch_bench.py" % (2 if not results.get("题库") else 1))
     if not results.get("llama.cpp") or not results.get("模型文件"):
         print("    · 本地模型评测需要 llama.cpp + GGUF 模型")
         print("      只做云端对比的话可以跳过")

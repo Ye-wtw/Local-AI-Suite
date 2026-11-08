@@ -5,9 +5,9 @@ LLM judge on every evaluation. Instead we freeze ONE good answer set, distill it
 machine-checkable 'checks', and score local models with rules (zero marginal cost).
 
 Usage:
-  python scripts/d9_baseline.py --endpoint deepseek            # regenerate answers
-  python scripts/d9_baseline.py --endpoint deepseek --dry-run  # show, do not write
-  python scripts/d9_baseline.py --selfcheck                    # verify existing baseline
+  python tools/d9_baseline.py --endpoint deepseek            # regenerate answers
+  python tools/d9_baseline.py --endpoint deepseek --dry-run  # show, do not write
+  python tools/d9_baseline.py --selfcheck                    # verify existing baseline
 
 Notes:
   - 'checks' are NEVER overwritten: only 'baseline_answer' / 'baseline_source' change.

@@ -1,11 +1,11 @@
-# model-arena — 本地/云端 LLM 多维能力评测
+# 06_model-arena — 本地/云端 LLM 多维能力评测
 
 一个自研的模型能力评测框架,覆盖 **9 个维度**,含**速度扫描**、**云端 API 标杆对比**、**多权重预设** 与 **交互式 HTML 排行榜**。
 
 ## 目录结构
 
 ```
-model-arena/
+06_model-arena/
 ├── datasets/
 │   ├── _samples/        # 手写样例(每维度 1-5 题,做格式基准)
 │   ├── _templates/      # 题目模板池(知识/逻辑/代码/agent/可靠性),生成器读取
@@ -51,7 +51,7 @@ python scripts/gen_datasets.py --seed 42
 
 # 2. 联网下载权威基准(可选;HF 被墙时设 HF_ENDPOINT=https://hf-mirror.com)
 pip install datasets
-python scripts/fetch_datasets.py --limit 200
+python tools/fetch_datasets.py --limit 200
 
 # 3. 合并去重 + 生成 manifest
 python scripts/build_manifest.py
@@ -451,7 +451,7 @@ D9 是开放式任务(会议纪要、发票抽取、视频总结、比价选品�
 
 1. **跑一次云端** —— 让云端模型对 20 道题各生成一份基准答案:
    ```bash
-   python scripts/d9_baseline.py --endpoint deepseek
+   python tools/d9_baseline.py --endpoint deepseek
    ```
 2. **固化成检查项** —— 每题转成机器可判的 `checks`
 3. **本地零成本评分** —— 之后所有本地模型只做规则比对,不再调用裁判
@@ -459,7 +459,7 @@ D9 是开放式任务(会议纪要、发票抽取、视频总结、比价选品�
 ## 关键纪律:基准必须通过自己的检查项
 
 ```bash
-python scripts/d9_baseline.py --selfcheck
+python tools/d9_baseline.py --selfcheck
 ```
 ```
 OK   d9_dsh_001     覆盖 100%
@@ -740,7 +740,7 @@ python runner/contamination.py --orig <原题结果> --probe <探针结果>
 ## ③ 真实任务扩容(D9: 20 → 32)
 
 ```bash
-python scripts/harvest_sessions.py --min-chars 40 --limit 400
+python tools/harvest_sessions.py --min-chars 40 --limit 400
 ```
 
 从**本机 220 个真实 DSH 会话**挖出 400 条候选,策展成 12 道新 D9 题。

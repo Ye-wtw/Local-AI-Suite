@@ -1,6 +1,6 @@
-# model-arena 项目计划书
+# 06_model-arena 项目计划书
 
-> 版本 v0.2 ｜ 更新 2026-10-10 ｜ 项目路径 `model-arena`
+> 版本 v0.2 ｜ 更新 2026-10-10 ｜ 项目路径 `E:\AI_workspace\06_model-arena`
 > 定位:本地 / 云端 LLM 多维能力评测系统。可为本地模型建立可复现的能力档案,并与云端 API 标杆对比。
 
 ---
@@ -121,7 +121,7 @@
 ## 四、系统架构
 
 ```
-model-arena/
+06_model-arena/
 ├── config/
 │   ├── endpoints.json      端点配置(llama.cpp / ollama / mock / deepseek)
 │   ├── weights.json        维度权重 + 5 套预设;weight=0 表示仅诊断
@@ -396,14 +396,14 @@ python runner/compare_runs.py --level canary
 **问题**:D9 是开放式任务(会议纪要、发票抽取、视频总结、比价选品…),原本只能靠 LLM 裁判 → **每评一次付一次钱**。
 
 **解法(三步)**:
-1. **跑一次云端**:用任意云端模型对 20 道题各生成一份基准答案(`scripts/d9_baseline.py --endpoint deepseek`)
+1. **跑一次云端**:用任意云端模型对 20 道题各生成一份基准答案(`tools/d9_baseline.py --endpoint deepseek`)
 2. **固化成检查项**:把每题的要点转成机器可判的 `checks`(any_of / all_of / min_count / number / forbidden)
 3. **本地零成本评分**:之后所有本地模型都只用规则比对,**不再调用任何裁判**
 
 **关键纪律:基准答案必须通过自己的检查项**。写完基准立刻自检:
 
 ```
-$ python scripts/d9_baseline.py --selfcheck
+$ python tools/d9_baseline.py --selfcheck
 OK   d9_dsh_001     覆盖 100%
 ...
 baseline self-check: 20/20
@@ -605,7 +605,7 @@ BFCL 是这轮质量最高的补充:它给的是**真实函数 schema + 带参�
 
 #### ③ 真实任务扩容(D9:20 → 32 题)
 
-写了 `scripts/harvest_sessions.py`,从**本机 220 个真实 DSH 会话**里挖出 400 条候选任务,
+写了 `tools/harvest_sessions.py`,从**本机 220 个真实 DSH 会话**里挖出 400 条候选任务,
 策展成 12 道新的 D9 题(硬件评估 / 脚本生成 / 方案对比 / 选型 / 计划编排 / 权限方案 /
 数据分析 / 上下文策略 / 排障 / 量化选择 / 评测设计 / 资料调研)。
 
@@ -891,9 +891,9 @@ GPQA 单题输出 9,200 token(我按 2,000 估的)。
 ### 启动推理服务(参考,来自已验证配置)
 
 ```bash
-cd <llama.cpp 目录>\bin
+cd E:\AI_workspace\00_models_Base\llama.cpp\bin
 llama-server.exe ^
- --model "<你的模型目录>\Qwen3.5-9B-UD-Q4_K_XL.gguf" ^
+ --model "E:\AI_workspace\01_models\qwen3.5\Qwen3.5-9B-MTP-GGUF\Qwen3.5-9B-UD-Q4_K_XL.gguf" ^
  --host 127.0.0.1 --port 8080 --ctx-size 8192 --n-gpu-layers 99 ^
  --threads 12 --alias Qwen3.5-9B --reasoning off ^
  --temp 0.6 --top-p 0.95 --top-k 20 --min-p 0.05
@@ -923,7 +923,7 @@ python scripts/gen_datasets.py --seed 42
 python scripts/gen_d10.py
 python scripts/build_manifest.py
 python runner/make_subset.py --all
-python scripts/fetch_datasets.py --limit 200      # 需联网
+python tools/fetch_datasets.py --limit 200      # 需联网
 ```
 
 ---

@@ -3,7 +3,7 @@
 Each fetch is cached to datasets/authoritative/<name>.jsonl; re-running is a no-op for
 completed downloads. Use --limit to cap items per set (cost control).
 Requires: pip install datasets (HuggingFace hub). If HF is blocked, try HF_ENDPOINT=https://hf-mirror.com.
-Usage: python scripts/fetch_datasets.py [--limit 200] [--only mmlu_pro,aime]
+Usage: python tools/fetch_datasets.py [--limit 200] [--only mmlu_pro,aime]
 """
 import os, sys, json, argparse, hashlib
 

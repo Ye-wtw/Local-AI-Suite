@@ -11,8 +11,8 @@ substantive requests, dedupes, and writes a candidate file for curation.
 Privacy: outputs stay local under datasets/_samples/. Nothing is uploaded.
 
 Usage:
-  python scripts/harvest_sessions.py --list-sessions
-  python scripts/harvest_sessions.py --min-chars 40 --limit 400
+  python tools/harvest_sessions.py --list-sessions
+  python tools/harvest_sessions.py --min-chars 40 --limit 400
 """
 import argparse, collections, glob, json, os, re, sys, zstandard
 

@@ -30,7 +30,13 @@ ROOT = os.path.dirname(HERE)
 # 其余收进 docs/ —— 2026-11-07 架构整理时挪的。
 # 改这个列表必须同步磁盘上的真实位置,否则 doccheck 会静默跳过那份文档。
 DOCS = ["README.md", "AGENTS.md", "docs/USAGE.md", "docs/ARCHITECTURE.md",
-        "docs/CONTRIBUTING.md", "docs/STATUS.md"]
+        "docs/CONTRIBUTING.md", "docs/STATUS.md",
+        # docs/dev/README.dev.md is the first thing a new maintainer opens, so a
+        # stale command there costs more than one in an archived plan. It was
+        # outside this list and that is exactly where "python scripts/d9_baseline.py"
+        # survived: the script lives in tools/, so every copy of that command
+        # failed.  ARCHITECTURE.md links to it, which makes it reachable.
+        "docs/dev/README.dev.md"]
 DOC_GLOBS = []
 
 
@@ -85,7 +91,15 @@ def main():
                 continue
             if rel not in scripts:
                 ln = txt[:m.start()].count(chr(10)) + 1
-                problems.append((doc, ln, rel, "file does not exist"))
+                # Say WHERE it actually lives. A reader who is told only "does not
+                # exist" has to go searching; the common failure was a script that
+                # sits in tools/ while every document called it scripts/.
+                here = rel.rsplit("/", 1)[0]
+                moved = [s for s in scripts
+                         if s.rsplit("/", 1)[-1] == leaf and s.rsplit("/", 1)[0] != here]
+                hint = ("file does not exist (it lives in %s)" % ", ".join(sorted(moved))
+                        if moved else "file does not exist")
+                problems.append((doc, ln, rel, hint))
 
         # python runner/x  (missing .py, or genuinely absent)
         for m in re.finditer(r"python\s+((?:runner|scripts|tools)/[\w]+)(?![\w./])", txt):
