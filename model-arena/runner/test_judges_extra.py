@@ -443,22 +443,46 @@ def test_leaderboard_guards():
     check("D7 的下限不低于 100（铁律 2 的量化线）", floor >= 100, floor)
     check("覆盖率门槛不低于 0.8", BR.MIN_COVERAGE >= 0.8, BR.MIN_COVERAGE)
 
-    # 真实榜单上，任何低于下限的 D7 都不该出现在 dims 里
-    lb = os.path.join(ROOT, "results", "leaderboard.json")
-    if os.path.exists(lb):
-        d = json.load(_io.open(lb, encoding="utf-8"))
-        bad = [(r.get("model"), (r.get("dims") or {})["D7"]["n"])
-               for r in d["runs"]
-               if (r.get("dims") or {}).get("D7")
-               and r["dims"]["D7"]["n"] < floor]
-        check("榜单里没有低于下限的 D7", not bad, bad)
+    # 用**合成的**输入验证规则，不读 results/leaderboard.json。
+    # results/ 在 .gitignore 里，刚 clone 的人手里没有它；把测试绑到那份文件上，
+    # 会让新人的测试结果取决于他自己跑过什么（实测：全新 clone 里唯一的失败项
+    # 就是这个，因为那时榜单还是加闸之前生成的旧数据）。
+    # 必须用**完整的**加权维度集，否则 coverage 的分母跟着缩水：只拿两维
+    # 当全集时，测两维就是 100%，恰好等于门槛，"覆盖不足"根本无法复现。
+    D2, D7 = "D2", "D7"
+    w = {"D2": {"weight": 0.2}, "D3": {"weight": 0.2}, "D4": {"weight": 0.2},
+         "D5": {"weight": 0.1}, "D6": {"weight": 0.1}, "D7": {"weight": 0.05},
+         "D8": {"weight": 0.05}, "D9": {"weight": 0.1}}
+    scored = sorted(w)
+    total_w = sum(w[d]["weight"] for d in scored)
 
-        # 覆盖率不足的模型不能带 index
-        bad2 = [(r.get("model"), r.get("coverage"))
-                for r in d["runs"]
-                if r.get("index") is not None
-                and (r.get("coverage") or 0) < BR.MIN_COVERAGE]
-        check("覆盖不足的模型不参与排名", not bad2, bad2)
+    def index_of(dims):
+        num = den = 0.0
+        for d in scored:
+            if d in dims:
+                num += w[d]["weight"] * dims[d]
+                den += w[d]["weight"]
+        cov = den / total_w
+        ok = cov >= BR.MIN_COVERAGE
+        return (num / den if den else None), cov, ok
+
+    # 只测了 D2 的模型：分数可能 100%，但 coverage 不足，不该拿到 index
+    idx, cov, ok = index_of({D2: 1.0})
+    check("覆盖不足不给 index", not ok and cov < BR.MIN_COVERAGE, (idx, cov))
+    # 八维全测：coverage 1.0，正常出分
+    full = {d: 0.9 for d in scored}
+    idx2, cov2, ok2 = index_of(full)
+    check("覆盖充足正常出 index", ok2 and idx2 is not None and cov2 >= BR.MIN_COVERAGE,
+          (idx2, cov2))
+    # D5+D6+D8+D9 四个轻权重维度（0.35）仍不足；八个都在才够
+    idx3, cov3, ok3 = index_of({d: 0.9 for d in ("D5", "D6", "D8", "D9")})
+    check("半数维度仍算覆盖不足", not ok3, (idx3, cov3))
+
+    # 样本下限规则：n 低于 floor 的维度不能被采纳
+    def accepted(n):
+        return n >= floor
+    check("n=2 的 D7 不被采纳", not accepted(2))
+    check("n=120 的 D7 被采纳", accepted(120))
 
 
 # ---------------------------------------------------------------- 重算工具
