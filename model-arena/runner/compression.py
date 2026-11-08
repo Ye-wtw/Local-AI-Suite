@@ -205,6 +205,15 @@ def judge_retention(scenario, response):
     surname, role = owner[0], owner[1:]
     has_surname = surname in txt
     has_role = role in txt
+
+    # 编号也必须是**这一个**，不只是一个编号。
+    #
+    # 题面明写「请同时写出项目编号与负责人姓名/职务」，而旧判据只看姓+职务，
+    # 于是「PRJ-2491 由 江总监 负责」判对 —— 那是别的项目。实测负对照抓到这一点：
+    # 同姓干扰正是为了让模型必须靠编号区分，判分器却把唯一的区分依据丢掉了。
+    # 只要回答里出现了别的 PRJ 编号而目标编号不在，就不算还原。
+    code_ok = code in txt
+    other_codes = [c for c in (scenario.get("planted") or {}) if c != code and c in txt]
     # 注意:这里曾经有一个 "has_surname and has_role and len(named_others) <= 1"
     # 的分支先返回 True,导致下面这段"提到别人不算背名单"的判断永远走不到 ——
     # 即修了 bug 却留下死代码,表现是"改了源码、行为没变"(实测注入 False
@@ -219,10 +228,22 @@ def judge_retention(scenario, response):
     #
     # 新判据:只有当**答案本身不成形**(配对不完整)且提到多个负责人时才按枚举处理。
     # 配对完整时,提及别人一律不影响正确性 —— 那正是合理的排除论证。
+    # 界线要划准：**只提别人编号**才算答错；完全不提编号不算错。
+    #
+    # 题面里已经写着目标编号，所以「姓陈,职务总监」这种不重复编号的答法是对的 ——
+    # 强制要求复述编号会把正确回答判错（实测 test_judges.py 的「D12 拼接式写法判对」
+    # 因此从 PASS 翻成 FAIL）。而「PRJ-2491 由 江总监 负责」明确指向另一个项目，
+    # 必须判错，否则同姓干扰这一整段设计就白做了。
+    if other_codes and not code_ok:
+        return {"correct": False,
+                "reason": "answered for %s, not %s - owner alone does not say WHICH project"
+                          % (other_codes[:2], code),
+                "code_ok": False, "other_codes": other_codes}
     if has_surname and has_role:
         return {"correct": True,
-                "reason": "owner %s reconstructed (mentions %d others in reasoning)"
-                          % (owner, len(named_others)), "paired": True}
+                "reason": "owner %s reconstructed for %s (mentions %d others in reasoning)"
+                          % (owner, code, len(named_others)), "paired": True,
+                "code_ok": True}
     if owner in txt:
         return {"correct": False,
                 "reason": "named %s plus %d other owners - roster, not recall"

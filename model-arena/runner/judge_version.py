@@ -39,6 +39,10 @@ CORE_FILES = [
     "judge.py", "checkers.py", "reliability_judge.py", "code_judge.py",
     "d9_judge.py", "chess_judge.py", "longctx_judge.py", "d9_exec.py",
     "agent_judge.py",
+    # compression.py judged D12 and was missing here: adding the project-code
+    # requirement to judge_retention() changed D12 verdicts while the fingerprint
+    # stayed byte-identical. Same class of blind spot as checkers.py.
+    "compression.py",
 ]
 
 # Files reachable by one suite only. Editing one of these must not invalidate

@@ -162,6 +162,31 @@ def test_d8_reliability():
         check("D8 诚实不确定不算失败", v["correct"] is True, v)
 
 
+def test_d12_code_must_match():
+    """D12 压缩保留：答对负责人但**写错项目编号**必须判错。
+
+    题面明写「请同时写出项目编号与负责人姓名/职务」。旧判据只看"姓+职务"，
+    于是「PRJ-2491 由 江总监 负责」被判对 —— 那是别的项目。
+    同姓干扰的存在正是为了让模型必须靠编号区分，判分器却把唯一的区分依据丢了。
+    负对照实测抓到的正是这一条。
+    """
+    import compression as C
+
+    sc = C.build_scenario(seed=20261101)
+    code = sc["target_code"]
+    owner = sc["target_owner"]
+    other = [c for c in sc["planted"] if c != code][0]
+
+    check("D12 编号正确才判对",
+          C.judge_retention(sc, "%s 由 %s 负责" % (code, owner))["correct"] is True)
+    # 关键回归：编号错 = 答错，哪怕人名职务完全正确
+    v = C.judge_retention(sc, "%s 由 %s 负责" % (other, owner))
+    check("D12 编号写错判错", v["correct"] is False, v.get("reason"))
+    # 断言要钉住"为什么错"，而不是钉住某句具体措辞 —— 文案改一次测试就假红。
+    check("D12 编号写错被点名", other in str(v.get("reason", "")), v.get("reason"))
+    check("D12 空答判错", C.judge_retention(sc, "")["correct"] is False)
+
+
 # ---------------------------------------------------------------- D7 长上下文
 
 def test_d7_longctx():
@@ -534,7 +559,7 @@ def main():
     print(" 判分器回归测试（第二批）")
     print("=" * 58)
     groups = (test_d10_chess, test_d7_longctx, test_d9_judge, test_d6_agent,
-              test_d8_reliability, test_d5_ifeval_checkers,
+              test_d8_reliability, test_d12_code_must_match, test_d5_ifeval_checkers,
               test_public_judge_routing, test_rescore_refuses_empty_work,
               test_judge_version_covers_all_judges)
     for fn in groups:
