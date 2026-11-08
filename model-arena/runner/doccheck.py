@@ -33,9 +33,9 @@ DOCS = ["README.md", "AGENTS.md", "docs/USAGE.md", "docs/ARCHITECTURE.md",
         "docs/CONTRIBUTING.md", "docs/STATUS.md",
         # docs/dev/README.dev.md is the first thing a new maintainer opens, so a
         # stale command there costs more than one in an archived plan. It was
-        # outside this list and that is exactly where "python scripts/d9_baseline.py"
-        # survived: the script lives in tools/, so every copy of that command
-        # failed.  ARCHITECTURE.md links to it, which makes it reachable.
+        # outside this list and that is exactly where the wrong-path command for
+        # d9_baseline.py survived: the script lives in tools/, so every copy of
+        # that command failed.  ARCHITECTURE.md links to it, which makes it reachable.
         "docs/dev/README.dev.md"]
 DOC_GLOBS = []
 
