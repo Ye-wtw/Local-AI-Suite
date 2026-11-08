@@ -409,8 +409,19 @@ def test_rescore_refuses_empty_work():
             pass
 
     # 多维度文件：记录自带 dim，要求按记录分派而不是整份跳过
-    check("rescore 支持 D7", "D7" in __import__("inspect").getsource(RS.rescore_one),
+    check("rescore 支持 D7", 'rd == "D7"' in __import__("inspect").getsource(RS.rescore_one),
           "rescore_one 里没有 D7 分支")
+
+    # D11/D12 没有题库行，只能靠重建题目。D11 的重建是安全的（图片由代码生成、
+    # id 与答案都对两个不同目录重建后完全相同）；D12 不安全 —— 见下一条。
+    check("rescore 支持 D11", 'rd == "D11"' in __import__("inspect").getsource(RS.rescore_one))
+
+    # D12 必须拒绝重算，而不是给一个看着像重算过的 0/48。
+    # 实测：build_scenario 后来加了"同姓干扰"那一段，随机序列整体位移，
+    # 同一个 seed 不再产生同一个场景 —— seed 20261101 当年是"石工程师"，
+    # 现在是"江总监"，于是重建式重算把 48 条全翻成错，全是假翻转。
+    src = __import__("inspect").getsource(RS.rescore_one)
+    check("D12 拒绝离线重算", "只能重跑模型" in src, "D12 分支没说清为什么不能重算")
 
 
 # ---------------------------------------------------------------- 版本指纹

@@ -24,6 +24,18 @@ from d9_judge import judge_d9  # noqa: E402
 from longctx_judge import judge_longctx  # noqa: E402
 
 
+_D11_CACHE = {}
+
+
+def _d11_items():
+    """Rebuild the D11 items exactly as suite_vision does (images are generated)."""
+    if "items" not in _D11_CACHE:
+        import vision as vismod
+        root = os.path.join(ROOT, "datasets", "fixtures", "vision")
+        _D11_CACHE["items"] = vismod.build_all(root)
+    return _D11_CACHE["items"]
+
+
 def rescore_one(path):
     with io.open(path, encoding="utf-8") as f:
         d = json.load(f)
@@ -31,7 +43,10 @@ def rescore_one(path):
     dim = s.get("dim")
     recs = d.get("records") or []
     if not recs:
-        return None
+        # An empty file is not an unsupported dimension. Reporting it as one
+        # hid which files actually need work (实测 6 个 D11 空文件全报"维度暂不支持")。
+        return {"dim": dim, "old": None, "new": None, "n": 0, "flips": [],
+                "out": None, "skipped": "文件里没有 records(那次跑测没产出任何记录)"}
     if not dim:
         # A LEVEL_/run_ file has NO summary["dim"]: it is one run across every
         # dimension, so its records carry their own "dim". The old code built
@@ -55,6 +70,15 @@ def rescore_one(path):
     for dd in sorted(dims):
         ds = os.path.join(ROOT, "datasets", "full", "%s_full.jsonl" % dd)
         if not os.path.isfile(ds):
+            # D11 (vision) and D12 (compaction) have no row bank: both build their
+            # items FROM CODE at run time, so the only way to re-judge them is to
+            # rebuild the same items. D11 items are derived from the generated
+            # fixture images and carry a stable id; D12 scenarios are derived from
+            # the seed embedded in the id ("d12_<seed>"). Verified deterministic:
+            # build_all over two different roots yields identical ids AND answers.
+            if dd == "D11":
+                for x in _d11_items():
+                    rows[x.get("id")] = x
             continue
         with io.open(ds, encoding="utf-8") as f:
             for line in f:
@@ -65,10 +89,21 @@ def rescore_one(path):
     changed = []
     touched = 0
     for r in recs:
-        q = rows.get(r.get("id"))
-        if not q or r.get("error"):
+        if r.get("error"):
             continue
-        rd = r.get("dim") or dim          # LEVEL files: the record carries its own dim
+        rd = r.get("dim") or dim          # LEVEL files carry their own dim on the record
+        if rd == "D12":
+            # See the long note in the D12 branch below: the scenario cannot be
+            # rebuilt from its seed any more, so this file must be refused here -
+            # before the row lookup, which has no D12 bank to find and would
+            # otherwise report a misleading "missing row" instead.
+            return {"dim": "D12", "old": None, "new": None, "n": 0, "flips": [],
+                    "out": None,
+                    "skipped": "D12 场景由 seed 生成且生成器已变更,同 seed 不再可复现;"
+                               "离线重算会得到假分数,只能重跑模型"}
+        q = rows.get(r.get("id"))
+        if not q:
+            continue
         touched += 1
         old = bool(r.get("correct"))
         if rd == "D10":
@@ -96,6 +131,22 @@ def rescore_one(path):
             v = judge_agent(q, res, res["text"])
         elif rd == "D8":
             v = judge_reliability(q, r.get("response") or "")
+        elif rd == "D11":
+            import vision as vismod
+            v = vismod.judge_vision(q, r.get("response") or "")
+        elif rd == "D12":
+            # D12 CANNOT be re-judged offline, and pretending otherwise is worse
+            # than refusing. The scenario is built from a seed, but build_scenario
+            # has been edited since these runs (the same-surname distractor pass),
+            # which shifted the whole random sequence: seed 20261101 used to yield
+            # "石工程师" and now yields "江总监". Verified: every stored response
+            # answers a DIFFERENT project than the rebuilt scenario asks about, so
+            # a rebuild-based rescore scored 0/48 - all 48 flips were artifacts.
+            # Re-running the model is the only honest way to re-judge D12.
+            return {"dim": "D12", "old": None, "new": None, "n": 0, "flips": [],
+                    "out": None,
+                    "skipped": "D12 场景由 seed 生成且生成器已变更,同 seed 不再可复现;"
+                               "离线重算会得到假分数,只能重跑模型"}
         elif rd == "D7":
             # D7 was missing, so LEVEL_/run_ files (which mix every dimension)
             # hit the "unsupported dim" branch and the whole file was skipped.
