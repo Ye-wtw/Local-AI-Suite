@@ -385,6 +385,82 @@ def test_d5_ifeval_checkers():
     check("checkers MCQ 答错判错", CK.judge_mcq("答案是 B", "A")["correct"] is False)
 
 
+# ---------------------------------------------------------------- 端点流式
+
+def test_endpoint_stream_reasoning():
+    """推理模型的流式输出必须被读到，不能只认 delta.content。
+
+    实测缺陷：`chat_stream_text` 只取 `delta["content"]`，而开推理的模型把
+    思考写在 `delta["reasoning_content"]`，content 直到答案开始才非空 ——
+    max_tokens 收紧时答案永远不开始。症状极隐蔽：`usage.completion_tokens`
+    报了 1000（模型真生成了），但 `text` 是空串、`metrics` 是 None，于是
+    D1 速度扫描 3/3 全报 "no metrics"，看起来像服务不通。
+    """
+    import endpoint as E
+    import inspect
+
+    src = inspect.getsource(E)
+    # 非流式两条路径早就回退了 reasoning_content；流式这条必须一致
+    check("流式解析回退到 reasoning_content", "reasoning_content" in src)
+    check("流式里 content 与 reasoning_content 都认",
+          src.count("reasoning_content") >= 3, src.count("reasoning_content"))
+
+    # 直接对 delta 提取规则断言，不走网络 —— 真连一个端口会让这个测试
+    # 依赖外部服务，失败原因也会混进"连接被拒"而不是"没读 reasoning"。
+    import re as _re
+    body = src[src.index("def chat_stream"):]
+    m = _re.search(r"piece = delta\.get\(\"content\"\) or \"\"\n(.*?)if not piece:\n\s+continue",
+                   body, _re.S)
+    check("流式 delta 提取处有 reasoning 回退",
+          bool(m) and "reasoning_content" in (m.group(1) if m else ""),
+          (m.group(1).strip()[:80] if m else "pattern not found"))
+
+
+# ---------------------------------------------------------------- 榜单可信度
+
+def test_leaderboard_guards():
+    """榜单的两个守门判据：小样本维度不入库、覆盖不足不排名。
+
+    这两条都是实测出来的坑，不是预防性设计：
+
+    1. kv17-bonsai2t5 的 D7 只有 **n=2**，却以 100% 计入加权总分（权重 0.05）。
+       两票决定了总分的一块。而且 D7 恰好是最贵的维度（全量 120 题 14.69 元），
+       部分跑是常态，部分跑更不能读成强结果。
+    2. Qwen3.5-9B 只在 8 个加权维度里测了 2 个（coverage 0.20），却因为 index
+       只对"有数据的权重"求平均而排到第一 —— 缺失的维度不是 0，是静默。
+    """
+    import io as _io
+    import importlib
+
+    src = _io.open(os.path.join(ROOT, "runner", "build_report.py"),
+                   encoding="utf-8").read()
+    check("build_report 有按维度样本下限",
+          "MIN_SAMPLE_BY_DIM" in src and '"D7"' in src)
+    check("build_report 有覆盖率门槛", "MIN_COVERAGE" in src)
+
+    BR = importlib.import_module("build_report")
+    floor = max(BR.MIN_SAMPLE_N, BR.MIN_SAMPLE_BY_DIM.get("D7", 0))
+    check("D7 的下限不低于 100（铁律 2 的量化线）", floor >= 100, floor)
+    check("覆盖率门槛不低于 0.8", BR.MIN_COVERAGE >= 0.8, BR.MIN_COVERAGE)
+
+    # 真实榜单上，任何低于下限的 D7 都不该出现在 dims 里
+    lb = os.path.join(ROOT, "results", "leaderboard.json")
+    if os.path.exists(lb):
+        d = json.load(_io.open(lb, encoding="utf-8"))
+        bad = [(r.get("model"), (r.get("dims") or {})["D7"]["n"])
+               for r in d["runs"]
+               if (r.get("dims") or {}).get("D7")
+               and r["dims"]["D7"]["n"] < floor]
+        check("榜单里没有低于下限的 D7", not bad, bad)
+
+        # 覆盖率不足的模型不能带 index
+        bad2 = [(r.get("model"), r.get("coverage"))
+                for r in d["runs"]
+                if r.get("index") is not None
+                and (r.get("coverage") or 0) < BR.MIN_COVERAGE]
+        check("覆盖不足的模型不参与排名", not bad2, bad2)
+
+
 # ---------------------------------------------------------------- 重算工具
 
 def test_rescore_refuses_empty_work():
@@ -561,6 +637,7 @@ def main():
     groups = (test_d10_chess, test_d7_longctx, test_d9_judge, test_d6_agent,
               test_d8_reliability, test_d12_code_must_match, test_d5_ifeval_checkers,
               test_public_judge_routing, test_rescore_refuses_empty_work,
+              test_endpoint_stream_reasoning, test_leaderboard_guards,
               test_judge_version_covers_all_judges)
     for fn in groups:
         print()

@@ -218,7 +218,19 @@ class Endpoint:
                         usage = chunk["usage"]
                     for ch in chunk.get("choices", []):
                         delta = ch.get("delta", {}) or {}
+                        # reasoning models stream their thinking in
+                        # delta.reasoning_content and leave delta.content empty
+                        # until the answer starts - and with a tight max_tokens
+                        # the answer may never start. The blocking paths above
+                        # already fall back to reasoning_content; this stream did
+                        # not, so every reasoning-on model produced text_len=0
+                        # with metrics=None while usage reported a full
+                        # completion_tokens. Measured: D1 speed 'short' failed
+                        # 3/3 with "no metrics" on a Qwen3.5 model that had
+                        # generated 1000 tokens.
                         piece = delta.get("content") or ""
+                        if not piece:
+                            piece = delta.get("reasoning_content") or ""
                         if not piece:
                             continue
                         now = time.perf_counter()

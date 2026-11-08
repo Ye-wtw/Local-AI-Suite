@@ -54,9 +54,18 @@ def run_workload(ep, workload, repeats=3, max_tokens=None, lang="en", verbose=Tr
             else:
                 errors.append("run %d: no metrics" % (i + 1))
         except Exception as e:
-            errors.append("run %d: %s" % (i + 1, e))
+            msg = str(e)
+            # A 400 on the long workload is almost always the server's context
+            # window, not a broken endpoint: the workload asks for 100k input
+            # tokens and a default llama.cpp server starts at 4k-8k. Saying only
+            # "HTTP Error 400" sends people to check ports and firewalls.
+            if "400" in msg and workload.get("input_tokens", 0) >= 32000:
+                msg = ("%s -- 这个 workload 需要约 %dk token 上下文,当前服务装不下;"
+                       "用更大的 --ctx-size 重启,或跳过它(--only short,medium)"
+                       % (msg, workload.get("input_tokens", 0) // 1000))
+            errors.append("run %d: %s" % (i + 1, msg))
             if verbose:
-                print("    [%s] run %d FAILED: %s" % (name, i + 1, e))
+                print("    [%s] run %d FAILED: %s" % (name, i + 1, msg))
     if not recs:
         return {"workload": name, "error": "; ".join(errors) or "all runs failed", "runs": 0}
     ttfts = [r["ttft_s"] for r in recs]

@@ -27,6 +27,25 @@ DIM_LABEL = {"D1": "速度", "D2": "选择", "D3": "数学", "D4": "代码", "D5
 # 而 10 题已经足以把"冒烟"挡住,又不会误伤真正的小规模诊断维度。
 MIN_SAMPLE_N = 10
 
+# A weighted index built from a fraction of the dimensions is not comparable to
+# one built from all of them. 0.8 = at least 8 of the 10 weighted weights present.
+MIN_COVERAGE = 0.8
+
+# Per-dimension sample floors, applied on top of MIN_SAMPLE_N.
+#
+# A dimension with a handful of questions can report 100% and drag the weighted
+# index up on almost no evidence. Measured: kv17-bonsai2t5 was carrying D7 at
+# n=2 / 100%, which counts into the index at weight 0.05 while D2 rests on 552
+# questions - two questions silently decided a slice of the total score.
+#
+# D7 is the dimension that actually hits this: the long-context suite is the
+# expensive one (14.69 yuan for the full 120), so partial runs are normal and a
+# partial run must not read as a strong result. 100 is the floor the project's
+# rule 2 already asks for ("samples under 100 can only show direction").
+MIN_SAMPLE_BY_DIM = {
+    "D7": 100,
+}
+
 
 def load_weights():
     return json.load(open(os.path.join(ROOT, "config", "weights.json"), encoding="utf-8"))
@@ -113,7 +132,8 @@ def main():
             # 实测 D2 因此从 81.7% 变成 100%(n=4)。
             # 项目铁律:样本 <100 只能说方向。这里设硬门槛,小样本根本不入库。
             for d, b in (s.get("by_dim") or {}).items():
-                if b.get("n") and b["n"] >= MIN_SAMPLE_N:
+                floor = max(MIN_SAMPLE_N, MIN_SAMPLE_BY_DIM.get(d, 0))
+                if b.get("n") and b["n"] >= floor:
                     r["dims"][d] = {"n": b["n"], "correct": b["correct"],
                                     "acc": b["correct"] / b["n"]}
             continue
@@ -124,7 +144,13 @@ def main():
             d = s["dim"]
             if s.get("model"):
                 r["model"] = s["model"]
-            if s.get("n"):
+            # Same sample floor as the by_dim path above. This branch handles the
+            # per-dimension files (D7_longctx_*.json etc), and it was the one that
+            # actually let kv17's D7 through at n=2: the by_dim floor only covered
+            # LEVEL_/run_ wrappers, so fixing it alone changed nothing for a run
+            # saved as its own D7 file.
+            floor = max(MIN_SAMPLE_N, MIN_SAMPLE_BY_DIM.get(d, 0))
+            if s.get("n") and s["n"] >= floor:
                 r["dims"][d] = {"n": s["n"], "correct": s.get("correct", 0),
                                 "acc": s.get("accuracy", 0.0),
                                 "errors": s.get("errors", 0)}
@@ -274,6 +300,16 @@ def main():
                 den += w
         m["index"] = (num / den) if den > 0 else None
         m["coverage"] = den / total_w
+        m["partial"] = bool(m["index"] is not None and m["coverage"] < MIN_COVERAGE)
+        if m["partial"]:
+            # A model measured on 2 of 8 dimensions can top a leaderboard it
+            # never entered: index divides by the weights it HAS, so missing
+            # dimensions are not zero, they are silent. Measured: Qwen3.5-9B
+            # reached index 98.3 on coverage 0.20 - first place on a fifth of
+            # the test. Keep the number (it is real for what was run) but rank
+            # it as partial, below every fully covered model.
+            m["index_raw"] = m["index"]
+            m["index"] = None
         m["measured"] = sorted(m["dims"])
         out.append(m)
     out.sort(key=lambda x: (x["index"] is None, -(x["index"] or 0)))
