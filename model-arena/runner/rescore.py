@@ -21,6 +21,7 @@ from code_judge import judge_code  # noqa: E402
 from agent_judge import judge_agent  # noqa: E402
 from reliability_judge import judge_reliability  # noqa: E402
 from d9_judge import judge_d9  # noqa: E402
+from longctx_judge import judge_longctx  # noqa: E402
 
 
 def rescore_one(path):
@@ -31,9 +32,30 @@ def rescore_one(path):
     recs = d.get("records") or []
     if not recs:
         return None
+    if not dim:
+        # A LEVEL_/run_ file has NO summary["dim"]: it is one run across every
+        # dimension, so its records carry their own "dim". The old code built
+        # rows from "datasets/full/None_full.jsonl" (no such file), every q was
+        # then None, and the loop below skipped all 1949 records - yet it still
+        # wrote "<name>_rescored.json" with the ORIGINAL verdicts. Verified:
+        # LEVEL_full_deepseek-flash_...cloudfull.json has 401 D5 records all
+        # correct=True with checker_results=[] (the empty-rule-set pass), and
+        # its _rescored twin is byte-identical on those verdicts. A file that
+        # says "rescored" while changing nothing is worse than no rescore at all.
+        dim = "MULTI"
     rows = {}
-    ds = os.path.join(ROOT, "datasets", "full", "%s_full.jsonl" % dim)
-    if os.path.isfile(ds):
+    dims = set()
+    if dim == "MULTI":
+        for r in recs:
+            dd = r.get("dim")
+            if dd:
+                dims.add(dd)
+    else:
+        dims.add(dim)
+    for dd in sorted(dims):
+        ds = os.path.join(ROOT, "datasets", "full", "%s_full.jsonl" % dd)
+        if not os.path.isfile(ds):
+            continue
         with io.open(ds, encoding="utf-8") as f:
             for line in f:
                 line = line.strip()
@@ -41,27 +63,30 @@ def rescore_one(path):
                     x = json.loads(line)
                     rows[x.get("id")] = x
     changed = []
+    touched = 0
     for r in recs:
         q = rows.get(r.get("id"))
         if not q or r.get("error"):
             continue
+        rd = r.get("dim") or dim          # LEVEL files: the record carries its own dim
+        touched += 1
         old = bool(r.get("correct"))
-        if dim == "D10":
+        if rd == "D10":
             v = judge_chess(q, r.get("response") or "")
-        elif dim == "D3":
+        elif rd == "D3":
             v = judge_math(r.get("response") or "", q.get("answer"),
                            q.get("tolerance", "exact"))
-        elif dim == "D2":
+        elif rd == "D2":
             v = judge_mcq(r.get("response") or "", q.get("answer_letter"))
-        elif dim == "D4":
+        elif rd == "D4":
             v = judge_code(q, r.get("response") or "")
-        elif dim == "D5":
+        elif rd == "D5":
             # 按 expect 形状分派：checkers 走本项目校验器，instruction_id_list 走 IFEval。
             # 旧代码一律用 run_checkers，300 条 public-IFEval 因此被空规则集判成通过。
             import run as _R
             passed, _x = _R._judge_d5(q, r.get("response") or "")
             v = {"correct": bool(passed), "reason": str(_x.get("reason", ""))[:60]}
-        elif dim == "D6":
+        elif rd == "D6":
             # run.py 传的 result 是 {"text","tool_calls","latency_s"}。
             # 直接传 {} 会让判分器看不到任何工具调用 -> 全判"漏调用",
             # 实测把 88.4% 重算成 5.4%(130 题假翻转)。
@@ -69,9 +94,14 @@ def rescore_one(path):
                    "tool_calls": r.get("tool_calls") or [],
                    "latency_s": r.get("latency_s")}
             v = judge_agent(q, res, res["text"])
-        elif dim == "D8":
+        elif rd == "D8":
             v = judge_reliability(q, r.get("response") or "")
-        elif dim == "D9":
+        elif rd == "D7":
+            # D7 was missing, so LEVEL_/run_ files (which mix every dimension)
+            # hit the "unsupported dim" branch and the whole file was skipped.
+            # That left the empty-rule-set D5 verdicts in place on those files.
+            v = judge_longctx(q, r.get("response") or "")
+        elif rd == "D9":
             # 两个坑:
             #   1. judge_d9 要 **baseline 检查项 b**,不是题库行 q —— 传 q 得到
             #      "no checks defined",46 题假翻转。
@@ -87,6 +117,9 @@ def rescore_one(path):
                 continue
             v = judge_d9(b, r.get("response") or "")
         else:
+            # 一条记录遇到不支持的维度就把整份文件判为 skip 是对的：
+            # 多维度文件的 by_dim 会因此只更新一部分，剩下那部分仍是旧判决，
+            # 一半新一半旧的数字比不重算更误导。
             return "skip"
         nc = bool(v.get("correct"))
         if nc != old:
@@ -96,11 +129,34 @@ def rescore_one(path):
         r["rescored"] = True
     valid = [r for r in recs if not r.get("error")]
     cor = sum(1 for r in valid if r.get("correct"))
-    s["correct"] = cor
-    s["n_valid"] = len(valid)
-    s["n_errors"] = len(recs) - len(valid)
-    s["accuracy"] = (cor / len(valid)) if valid else 0.0
-    s["rescore_note"] = "用当前判分器重算,翻转 %d 题" % len(changed)
+    if dim == "MULTI":
+        # 多维度文件没有全局 accuracy；它按 by_dim 汇总，榜单读的也是 by_dim。
+        # 只写 correct/n_valid 会让上层 "correct/nm" 与 by_dim 互相矛盾。
+        bd = s.get("by_dim") or {}
+        for dkey, blk in bd.items():
+            dr = [r for r in valid if (r.get("dim") or "") == dkey]
+            if dr:
+                blk["correct"] = sum(1 for r in dr if r.get("correct"))
+                blk["n"] = len(dr)
+                old_n = blk.get("n")
+        s["correct"] = cor
+        s["n_valid"] = len(valid)
+    else:
+        s["correct"] = cor
+        s["n_valid"] = len(valid)
+        s["n_errors"] = len(recs) - len(valid)
+        s["accuracy"] = (cor / len(valid)) if valid else 0.0
+    # A file whose verdicts did not change is NOT a rescore. Writing it as one
+    # made every untouched row look verified against the current judge - which
+    # is exactly the silent failure this tool exists to prevent.
+    s["rescore_note"] = ("用当前判分器重算 %d 条记录,翻转 %d 题" % (touched, len(changed))
+                         if touched else "没有一条记录可重算(缺少对应题库行)")
+    if not touched:
+        # 一条都没重算就别生成文件。旧行为照样写 _rescored.json,
+        # 于是"看起来已用当前判分器验证过"的文件其实是旧判决的副本。
+        return {"dim": dim, "old": None, "new": cor, "n": len(valid),
+                "flips": [], "out": None,
+                "skipped": "没有一条记录可重算(缺少对应题库行)"}
     d["rescore_changes"] = changed
     base = os.path.splitext(os.path.basename(path))[0]
     out = os.path.join(ROOT, "results", base + "_rescored.json")
@@ -118,6 +174,9 @@ def main():
         r = rescore_one(p)
         if r is None or r == "skip":
             print("%s: 跳过(维度暂不支持重算)" % os.path.basename(p))
+            continue
+        if r.get("skipped"):
+            print("%s: 跳过(%s)" % (os.path.basename(p), r["skipped"]))
             continue
         print("%s  维度=%s  重算后 %d/%d = %.1f%%  翻转 %d 题 -> %s" % (
             os.path.basename(p), r["dim"], r["new"], r["n"],

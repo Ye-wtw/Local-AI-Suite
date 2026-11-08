@@ -360,6 +360,59 @@ def test_d5_ifeval_checkers():
     check("checkers MCQ 答错判错", CK.judge_mcq("答案是 B", "A")["correct"] is False)
 
 
+# ---------------------------------------------------------------- 重算工具
+
+def test_rescore_refuses_empty_work():
+    """rescore.py 不能生成「什么都没重算」的 _rescored 文件。
+
+    真实后果：LEVEL_/run_ 文件没有 summary["dim"]（它们是一次跨多维度的跑测，
+    每条记录自带 dim）。旧 rescore 按 "datasets/full/None_full.jsonl" 找题库，
+    每一条 q 都是 None，于是 **1949 条一条都没重算**，却照样写出
+    "_rescored.json" —— 而它的判决与原件逐条相同。这比不重算更糟：
+    一个文件名写着"已用当前判分器验证"，内容是旧判决的副本。
+
+    实测被它掩盖的数据：LEVEL_full_deepseek-flash ...cloudfull.json 的
+    D5 是 401/401 全对（checker_results 全空，即空规则集那次），
+    _rescored 版本仍是 401/401；修好后同文件重算得 366/401。
+    """
+    import rescore as RS
+
+    rows = _rows("D5", "verifiable")
+    if not rows:
+        check("rescore 可测行存在", False)
+        return
+    q = rows[0]
+    work = os.path.join(ROOT, "results", "_rescore_selftest")
+    os.makedirs(work, exist_ok=True)
+    src = os.path.join(work, "D5_instruction_selftest_20261108-000000.json")
+    doc = {
+        "summary": {"dim": "D5", "dim_label": "指令"},
+        "records": [{"id": "no-such-id-at-all", "dim": "D5",
+                     "response": "x", "correct": True}],
+    }
+    with io.open(src, "w", encoding="utf-8") as f:
+        json.dump(doc, f, ensure_ascii=False)
+    try:
+        r = RS.rescore_one(src)
+        check("无可重算记录时不写文件", r.get("skipped") if isinstance(r, dict) else False, r)
+        out = os.path.join(work, "D5_instruction_selftest_20261108-000000_rescored.json")
+        check("无可重算记录时不留 _rescored", not os.path.exists(out))
+    finally:
+        for fn in os.listdir(work):
+            try:
+                os.remove(os.path.join(work, fn))
+            except OSError:
+                pass
+        try:
+            os.rmdir(work)
+        except OSError:
+            pass
+
+    # 多维度文件：记录自带 dim，要求按记录分派而不是整份跳过
+    check("rescore 支持 D7", "D7" in __import__("inspect").getsource(RS.rescore_one),
+          "rescore_one 里没有 D7 分支")
+
+
 # ---------------------------------------------------------------- 版本指纹
 
 def test_judge_version_covers_all_judges():
@@ -471,7 +524,8 @@ def main():
     print("=" * 58)
     groups = (test_d10_chess, test_d7_longctx, test_d9_judge, test_d6_agent,
               test_d8_reliability, test_d5_ifeval_checkers,
-              test_public_judge_routing, test_judge_version_covers_all_judges)
+              test_public_judge_routing, test_rescore_refuses_empty_work,
+              test_judge_version_covers_all_judges)
     for fn in groups:
         print()
         print("[%s]" % fn.__name__)
