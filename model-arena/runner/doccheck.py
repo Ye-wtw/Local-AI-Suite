@@ -83,7 +83,9 @@ def main():
 
         # python runner/x.py  (explicit file). Skip templates: docs legitimately
         # write "runner/xxx.py" or "runner/<dim>.py" as something to fill in.
-        for m in re.finditer(r"python\s+((?:runner|scripts|tools)/[\w.]+\.py)", txt):
+        # [\w.-]+ not [\w.]+ : scripts/start-longctx-server.py has hyphens, and the
+        # old class stopped at the first "-", producing a bogus "scripts/start".
+        for m in re.finditer(r"python\s+((?:runner|scripts|tools)/[\w.-]+\.py)", txt):
             rel = m.group(1)
             leaf = rel.rsplit("/", 1)[-1]
             # 2+ repeated placeholder letters: "xx.py", "xxx.py", "runner/<dim>.py"
@@ -102,7 +104,7 @@ def main():
                 problems.append((doc, ln, rel, hint))
 
         # python runner/x  (missing .py, or genuinely absent)
-        for m in re.finditer(r"python\s+((?:runner|scripts|tools)/[\w]+)(?![\w./])", txt):
+        for m in re.finditer(r"python\s+((?:runner|scripts|tools)/[\w-]+)(?![\w./-])", txt):
             rel = m.group(1)
             if rel + ".py" not in scripts:
                 ln = txt[:m.start()].count(chr(10)) + 1

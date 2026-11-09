@@ -448,6 +448,17 @@ def test_endpoint_stream_reasoning():
           (m.group(1).strip()[:80] if m else "pattern not found"))
 
 
+    # 长 prompt 的墙钟预算必须随规模增长。固定 300s 在慢速大上下文机器上会
+    # 系统性误杀：实测 8GB 卡 -nkvo 服务 32K 上下文时，D7 多针题单题 211-216s，
+    # 一重试就撞 300s 预检，整题判 timeout —— 那是预算不够，不是模型不会。
+    f = E.Endpoint.deadline_for_prompt
+    short = f([{"content": "x" * 8000}], 300)          # ~2k tok
+    mid = f([{"content": "x" * 128000}], 300)          # ~32k tok
+    long_ = f([{"content": "x" * 1024000}], 300)       # ~256k tok
+    check("短 prompt 不额外加预算", short == 300, short)
+    check("32k prompt 预算放大", mid > 300, mid)
+    check("256k prompt 预算更大", long_ > mid > 300, (mid, long_))
+
 # ---------------------------------------------------------------- 榜单可信度
 
 def test_leaderboard_guards():

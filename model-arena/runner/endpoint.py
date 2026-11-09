@@ -78,6 +78,30 @@ class Endpoint:
     DEFAULT_TIMEOUT_S = 300
     DEFAULT_MAX_TOKENS = 16384
 
+    # 长 prompt 需要更长的墙钟。固定 300s 在慢速大上下文机器上会系统性误杀：
+    # 实测 8GB 卡用 -nkvo 服务 32K 上下文时，D7 的多针题单题就要 211-216s，
+    # 一旦需要重试，300s 的 pre-attempt 检查直接把整题判成 timeout ——
+    # 那不是模型不会，是预算不够。按 prompt 规模给预算，而不是拍一个常数。
+    #
+    # 该函数只**放宽**默认值，调用方显式传 deadline_s 时完全不参与。
+    TIMEOUT_PER_1K_PROMPT_S = 2.0     # 每 1k prompt token 追加 2s
+    TIMEOUT_MIN_BONUS_TOKENS = 8000   # 8k 以下不加预算
+
+    @staticmethod
+    def deadline_for_prompt(messages, base=None):
+        """墙钟预算 = base + 2s × (超出 8k 的每 1k prompt token)。"""
+        try:
+            chars = sum(len(m.get("content") or "") for m in messages
+                        if isinstance(m, dict))
+        except Exception:
+            return base
+        approx = chars // 4
+        extra = max(0, approx - Endpoint.TIMEOUT_MIN_BONUS_TOKENS)
+        if not extra:
+            return base
+        return (base or Endpoint.DEFAULT_TIMEOUT_S) + \
+            Endpoint.TIMEOUT_PER_1K_PROMPT_S * (extra / 1000.0)
+
     def chat(self, messages, retries=2, deadline_s=_UNSET, max_tokens=_UNSET, **kw):
         """Return dict: {text, usage, latency_s, raw, timed_out}
 
@@ -91,7 +115,10 @@ class Endpoint:
         # _UNSET means "caller did not ask": apply the guard. An explicit None
         # means "caller wants it off": leave the server default alone.
         if deadline_s is _UNSET:
-            deadline_s = getattr(self, "deadline_s", self.DEFAULT_TIMEOUT_S)
+            base = getattr(self, "deadline_s", self.DEFAULT_TIMEOUT_S)
+            # Long prompts get a proportionally longer wall clock; short ones keep
+            # the original 300s guard against runaway loops.
+            deadline_s = self.deadline_for_prompt(messages, base)
         if max_tokens is _UNSET:
             max_tokens = getattr(self, "max_tokens", self.DEFAULT_MAX_TOKENS)
         if max_tokens:
@@ -138,7 +165,10 @@ class Endpoint:
         """
         import base64
         if deadline_s is _UNSET:
-            deadline_s = getattr(self, "deadline_s", self.DEFAULT_TIMEOUT_S)
+            base = getattr(self, "deadline_s", self.DEFAULT_TIMEOUT_S)
+            # Long prompts get a proportionally longer wall clock; short ones keep
+            # the original 300s guard against runaway loops.
+            deadline_s = self.deadline_for_prompt(messages, base)
         if max_tokens is _UNSET:
             max_tokens = getattr(self, "max_tokens", self.DEFAULT_MAX_TOKENS)
         with open(image_path, "rb") as f:

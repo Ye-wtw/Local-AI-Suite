@@ -8,7 +8,7 @@
 ## 0. 前置检查
 
 ```bash
-cd model-arena
+cd 06_model-arena
 python runner/setup.py
 ```
 
@@ -354,6 +354,31 @@ deepseek-flash 约 14 元 / 1949 题。建议先 canary（约 1 元）。
 **Q: 长上下文题被跳过了？**
 引擎 ctx 小于题目要求。看日志里的 `[ctx gate] 跳过 N 题`，
 要跑全部需 `--ctx-size` ≥ 题目要求（D7 最高 256k）。
+
+**Q: 显存只有 8GB，256K 上下文起不来？**
+
+不一定要加显存。KV cache 可以放在**主机内存**而不是显存：
+
+```bash
+python scripts/start-longctx-server.py --model <你的.gguf>
+```
+
+它等价于：
+
+```bash
+llama-server --ctx-size 263168 --cache-type-k q8_0 --cache-type-v q8_0 -nkvo ...
+```
+
+`-nkvo`（`--no-kv-offload`）把 KV 放内存，权重仍在显存。
+实测 8GB 卡服务 256K 上下文：显存约 7.3GB，900K 字符的请求正常返回。
+
+**代价是速度**：256K 上下文生成约 **13 t/s**（短上下文 53 t/s），
+D7 全量 120 题需要 **数小时**（实测约 2.8 分钟/题）。
+日常评测建议 `--suite canary` 或避开 `--suite longctx`，
+只在需要长上下文结论时全量跑一次。
+
+> 判 `skip` 的前提是"引擎确实服务不了"。如果你只是没开 `-nkvo`，
+> 那不是模型的长上下文能力为零，而是服务没配到位。
 
 ---
 
