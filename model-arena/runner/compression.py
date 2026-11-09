@@ -130,18 +130,24 @@ def build_scenario(seed=20261101, n_facts=18, filler_sentences=200):
     for c in codes:
         owner = planted[c]
         if c == target:
-            summary_lines.append(
-                "项目 %s 的负责人: 职务 %s, 姓氏 %s(压缩时顺序被打乱)。"
-                % (c, owner[1:], owner[0]))
+            # 难度 v5:目标的两段**拆开**，中间隔着别的项目的一行。
+            #
+            # 之前所有版本都把「职务」和「姓氏」放在同一行，模型读一行、
+            # 调个顺序就答对了 —— 实测真模型 24/24，区分度为 0。
+            # 拆开之后，模型必须先确认这两段说的是**同一个项目**（两行都带编号），
+            # 再跨行拼回完整姓名，这才需要跟踪而不是朗读。
+            #
+            # 信息量没有减少：答案依然完全可从摘要推出，
+            # 所以降到 0% 只会是"没能跨行重建"，不会是"题目无解"
+            # （那测的是诚实，上一版踩过这个坑）。
+            summary_lines.append("项目 %s(编号已确认): 职务为 %s。" % (c, owner[1:]))
         else:
             summary_lines.append("项目 %s 由 %s 负责。" % (c, owner))
     # 诱饵:与目标同姓、职务近似,放在目标行附近增加混淆
     decoy_code = "PRJ-%04d" % rng.randint(1000, 9999)
     while decoy_code in planted:
         decoy_code = "PRJ-%04d" % rng.randint(1000, 9999)
-    insert_at = summary_lines.index(
-        "项目 %s 的负责人: 职务 %s, 姓氏 %s(压缩时顺序被打乱)。"
-        % (target, target_owner[1:], target_owner[0]))
+    insert_at = summary_lines.index("项目 %s(编号已确认): 职务为 %s。" % (target, target_owner[1:]))
     summary_lines.insert(insert_at,
         "项目 %s 的负责人: 姓氏 %s, 职务为%s(该条为其他项目的记录)。"
         % (decoy_code, target_owner[0], decoy_role))
@@ -156,12 +162,27 @@ def build_scenario(seed=20261101, n_facts=18, filler_sentences=200):
     # 一条是倒序的完整片段。正确答案依然可从后者拼出,但模型必须
     # 判断"哪条才是完整的",而不是把两条都抄上或随便选一条。
     # 抄残缺那条 -> 缺姓氏 -> 判错;两条都抄 -> 按枚举判错。
-    tgt_pos = summary_lines.index(
-        "项目 %s 的负责人: 职务 %s, 姓氏 %s(压缩时顺序被打乱)。"
-        % (target, target_owner[1:], target_owner[0]))
-    summary_lines.insert(tgt_pos,
-        "项目 %s(第二次出现): 职务为%s,其余信息在同段落另一处。"
-        % (target, target_owner[1:]))
+    # 两段分置摘要两端，谁都不落在"最后一行"这个最容易被读到的位置：
+    #   - 职务行插到开头三分之一处
+    #   - 姓氏行插到结尾前几位
+    # 中间隔着十几个别项目的行，模型必须先靠编号认出是同一条记录，
+    # 再跨行拼回完整姓名 —— 这才测"跟踪"，而不是"朗读末尾"。
+    role_line = "项目 %s(编号已确认): 职务为 %s。" % (target, target_owner[1:])
+    if role_line in summary_lines:
+        summary_lines.remove(role_line)
+    summary_lines.insert(max(2, len(summary_lines) // 3), role_line)
+    # 姓氏行**不带项目编号**，改用"指向上文那条职务记录"的引用：
+    # "上面第 N 条写着职务的那位负责人，姓氏为 X"。
+    #
+    # 为什么还要再进一步：拆行之后模型依然 24/24 —— 因为两行都带 PRJ-8983，
+    # 它只要按编号搜两次就能拼上，那是检索不是重建。去掉编号后，必须先
+    # 定位职务那条记录，再顺着"那一处"的引用回到姓氏，两个片段才连得上。
+    # 信息仍完整（两条记录都在摘要里，索引也写明了），所以答错只可能是
+    # "没跟住引用"，不会是"题目无解"。
+    role_idx = summary_lines.index(role_line)
+    surname_line = ("上文第 %d 条注明的职务，其负责人姓氏为 %s"
+                    "(该条与上条为同一项目)。" % (role_idx, target_owner[0]))
+    summary_lines.insert(len(summary_lines) - 2, surname_line)
     summary = NL.join(summary_lines)
 
     question = ("文档中项目 %s 由谁负责?请同时写出项目编号与负责人姓名/职务。" % target)

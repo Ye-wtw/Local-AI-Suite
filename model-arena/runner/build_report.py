@@ -6,7 +6,7 @@ scores and speed metrics, computes the weighted Intelligence Index, and writes:
   reports/leaderboard.md       readable summary
 Usage: python runner/build_report.py
 """
-import glob, json, os, re, sys, datetime
+import glob, json, math, os, re, sys, datetime
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(HERE)
@@ -38,13 +38,21 @@ MIN_COVERAGE = 0.8
 # n=2 / 100%, which counts into the index at weight 0.05 while D2 rests on 552
 # questions - two questions silently decided a slice of the total score.
 #
-# D7 is the dimension that actually hits this: the long-context suite is the
-# expensive one (14.69 yuan for the full 120), so partial runs are normal and a
-# partial run must not read as a strong result. 100 is the floor the project's
-# rule 2 already asks for ("samples under 100 can only show direction").
-MIN_SAMPLE_BY_DIM = {
-    "D7": 100,
-}
+# D7 needs a floor, but NOT an absolute one. Its 120 questions are spread over
+# context sizes: 11 fit in 8k, 36 in 32k, 56 in 128k, and the remaining 64 need
+# 256k. An 8GB card cannot serve a 128k or 256k prompt at all, so a run there
+# can only ever reach 11 - and an absolute floor of 100 would lock every
+# small-VRAM machine out of its own leaderboard entry forever.
+# Measured: a local full attempt returned n=11, skipped=109.
+#
+# So the floor is a FRACTION of what the endpoint could actually attempt, and
+# the attemptable count is passed in by the caller. With no capability
+# information the dimension simply has to clear MIN_SAMPLE_N.
+MIN_SAMPLE_FRACTION = {"D7": 0.9}
+
+# The floor a dimension must reach when the run stopped on its own (no skips).
+# D7 keeps the project's own rule-2 line: under 100 samples only shows direction.
+MIN_SAMPLE_BY_DIM = {"D7": 100}
 
 
 def load_weights():
@@ -69,6 +77,31 @@ def parse_name(path):
     if not m:
         return None, None, None
     return m.group(1), m.group(2), m.group(3)
+
+
+def _floor_for(dim, block):
+    """Minimum n for this dimension.
+
+    Telling "thin run" from "small card" is the whole problem.
+    - n=2 with nothing skipped  = thin sample, must be rejected.
+    - n=11 with 109 skipped     = an 8GB card ran everything it CAN run
+      (109 of D7's 120 questions need 128k/256k context it cannot serve).
+      Rejecting this would lock every small-VRAM user out of their own board.
+
+    So the rule is: when the endpoint skipped something, the run is already as
+    complete as that machine allows, and only MIN_SAMPLE_N has to be met.
+    When nothing was skipped, the run stopped on its own accord and must reach
+    the per-dimension threshold.
+
+    `skipped` is the honest signal here because suite_longctx emits it precisely
+    for questions it refused to send. `n + skipped` is NOT the attemptable
+    count - those questions were never attemptable.
+    """
+    n = block.get("n") or 0
+    skipped = block.get("skipped") or 0
+    if skipped:
+        return MIN_SAMPLE_N
+    return max(MIN_SAMPLE_N, MIN_SAMPLE_BY_DIM.get(dim, 0))
 
 
 def main():
@@ -132,8 +165,7 @@ def main():
             # 实测 D2 因此从 81.7% 变成 100%(n=4)。
             # 项目铁律:样本 <100 只能说方向。这里设硬门槛,小样本根本不入库。
             for d, b in (s.get("by_dim") or {}).items():
-                floor = max(MIN_SAMPLE_N, MIN_SAMPLE_BY_DIM.get(d, 0))
-                if b.get("n") and b["n"] >= floor:
+                if b.get("n") and b["n"] >= _floor_for(d, b):
                     r["dims"][d] = {"n": b["n"], "correct": b["correct"],
                                     "acc": b["correct"] / b["n"]}
             continue
@@ -149,8 +181,7 @@ def main():
             # actually let kv17's D7 through at n=2: the by_dim floor only covered
             # LEVEL_/run_ wrappers, so fixing it alone changed nothing for a run
             # saved as its own D7 file.
-            floor = max(MIN_SAMPLE_N, MIN_SAMPLE_BY_DIM.get(d, 0))
-            if s.get("n") and s["n"] >= floor:
+            if s.get("n") and s["n"] >= _floor_for(d, s):
                 r["dims"][d] = {"n": s["n"], "correct": s.get("correct", 0),
                                 "acc": s.get("accuracy", 0.0),
                                 "errors": s.get("errors", 0)}

@@ -186,6 +186,38 @@ def test_d12_code_must_match():
     check("D12 编号写错被点名", other in str(v.get("reason", "")), v.get("reason"))
     check("D12 空答判错", C.judge_retention(sc, "")["correct"] is False)
 
+    # 难度 v5：目标的两段 {@link 职务}／{@link 姓氏} 必须**分置摘要两端**。
+    # 之前所有版本把两段放在同一行，模型读一行调个顺序就答对（实测 24/24，
+    # 区分度为 0）。拆开后要跨行按编号关联才算重建。这条断言钉住"拆开"
+    # 这件事本身 —— 一旦有人把它合回一行，区分度会悄悄消失。
+    lines = sc["summary"].split(chr(10))
+    pos = [i for i, ln in enumerate(lines) if code in ln]
+    # 职务行带编号；姓氏行不带编号、改为指向前文，所以只可能有一行命中 code
+    check("D12 职务记录带编号", len(pos) >= 1, pos)
+    # 姓氏必须在**远离**职务行的另一行里，且那一行不含编号（否则又退回按编号检索）
+    sur_rows = [i for i, ln in enumerate(lines) if owner[0] in ln and code not in ln]
+    check("D12 姓氏行不带编号", bool(sur_rows), sur_rows)
+    if pos and sur_rows:
+        gap = max(abs(s - pos[0]) for s in sur_rows)
+        check("D12 姓氏行与职务行隔开", gap >= 5, gap)
+    # 引用要指得准：那条写着"上文第 N 条"的记录，N 必须真的是职务行。
+    # 注意不能拿 sur_rows[-1]，它可能命中同姓干扰行 —— 必须按短语定位。
+    import re as _r
+    ref_rows = [(i, ln) for i, ln in enumerate(lines) if "上文第" in ln]
+    check("D12 姓氏行以引用形式出现", bool(ref_rows), len(ref_rows))
+    if ref_rows and pos:
+        m = _r.search(r"上文第 (\d+) 条", ref_rows[0][1])
+        check("D12 引用序号指向职务行",
+              bool(m) and int(m.group(1)) == pos[0],
+              (m.group(1) if m else None, pos[0]))
+    # 信息量不能减少：答案必须仍可从摘要推出，否则测的是诚实不是保留
+    check("D12 摘要仍能推出完整答案",
+          (owner[0] in sc["summary"]) and (owner[1:] in sc["summary"]), None)
+    # 摘要不能比文档还长（压缩比失控）
+    check("D12 压缩比仍在合理区间",
+          len(sc["summary"]) / len(sc["doc"]) < 0.20,
+          "%.3f" % (len(sc["summary"]) / len(sc["doc"])))
+
 
 # ---------------------------------------------------------------- D7 长上下文
 
@@ -443,6 +475,20 @@ def test_leaderboard_guards():
     check("D7 的下限不低于 100（铁律 2 的量化线）", floor >= 100, floor)
     check("覆盖率门槛不低于 0.8", BR.MIN_COVERAGE >= 0.8, BR.MIN_COVERAGE)
 
+    # 关键：门槛必须区分"薄样本"和"小显存卡跑满"。
+    # D7 的 120 题里 109 题需要 128k/256k 上下文，8GB 卡根本服务不了 ——
+    # 实测本地跑满只有 n=11、skip=109。用绝对门槛会让这类机器永远进不了榜，
+    # 而 n=2 那种才是真该拒绝的薄样本。
+    f = BR._floor_for
+    check("跑满能跑的（skip>0）不要求绝对题数",
+          f("D7", {"n": 11, "skipped": 109}) <= BR.MIN_SAMPLE_N,
+          f("D7", {"n": 11, "skipped": 109}))
+    check("n=2 且无跳过仍被拒绝",
+          f("D7", {"n": 2}) >= 100, f("D7", {"n": 2}))
+    check("n=52 且无跳过仍被拒绝（51 题不该代表 120）",
+          f("D7", {"n": 52}) >= 100, f("D7", {"n": 52}))
+    check("n=120 全量通过", 120 >= f("D7", {"n": 120}))
+
     # 用**合成的**输入验证规则，不读 results/leaderboard.json。
     # results/ 在 .gitignore 里，刚 clone 的人手里没有它；把测试绑到那份文件上，
     # 会让新人的测试结果取决于他自己跑过什么（实测：全新 clone 里唯一的失败项
@@ -478,11 +524,8 @@ def test_leaderboard_guards():
     idx3, cov3, ok3 = index_of({d: 0.9 for d in ("D5", "D6", "D8", "D9")})
     check("半数维度仍算覆盖不足", not ok3, (idx3, cov3))
 
-    # 样本下限规则：n 低于 floor 的维度不能被采纳
-    def accepted(n):
-        return n >= floor
-    check("n=2 的 D7 不被采纳", not accepted(2))
-    check("n=120 的 D7 被采纳", accepted(120))
+    # 样本下限规则本身已在上面的 _floor_for 断言里覆盖，这里不再用 floor 变量
+    # （它只代表"无跳过"时的线，和 skip>0 的路径不是同一条）。
 
 
 # ---------------------------------------------------------------- 重算工具
