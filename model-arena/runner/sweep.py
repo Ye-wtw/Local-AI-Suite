@@ -30,6 +30,12 @@ import re
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(HERE)
+
+try:
+    from console import make_stdout_safe
+    make_stdout_safe()
+except Exception:
+    pass
 NL = chr(10)
 
 # ---------------------------------------------------------------------------

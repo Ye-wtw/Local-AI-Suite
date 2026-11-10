@@ -35,6 +35,12 @@ import random
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(HERE)
+
+try:
+    from console import make_stdout_safe
+    make_stdout_safe()
+except Exception:
+    pass
 STORE = os.path.join(ROOT, "datasets", "agent_env")
 REAL = os.path.join(STORE, "tools_real.json")
 TIERS = os.path.join(STORE, "tiers.json")

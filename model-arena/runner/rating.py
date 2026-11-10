@@ -32,6 +32,12 @@ import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(HERE)
+
+try:
+    from console import make_stdout_safe
+    make_stdout_safe()
+except Exception:
+    pass
 RESULTS = os.path.join(ROOT, "results")
 NL = chr(10)
 SEED = 20261010

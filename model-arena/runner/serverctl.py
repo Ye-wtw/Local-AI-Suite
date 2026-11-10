@@ -29,6 +29,12 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(HERE)
 sys.path.insert(0, HERE)
 
+try:
+    from console import make_stdout_safe
+    make_stdout_safe()
+except Exception:
+    pass
+
 NL = chr(10)
 DEFAULT_PORT = 8080
 

@@ -35,6 +35,10 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(HERE)
 sys.path.insert(0, HERE)
 
+from console import make_stdout_safe  # noqa: E402
+
+make_stdout_safe()
+
 NL = chr(10)
 RESULTS = os.path.join(ROOT, "results")
 REPORTS = os.path.join(ROOT, "reports")

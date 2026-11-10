@@ -12,6 +12,10 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(HERE)
 sys.path.insert(0, HERE)
 
+from console import make_stdout_safe  # noqa: E402
+
+make_stdout_safe()
+
 from endpoint import load_endpoints, EndpointError
 from judge import judge_math
 from checkers import run_checkers, judge_mcq

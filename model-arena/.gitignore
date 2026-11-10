@@ -61,3 +61,8 @@ config/endpoints.local.json
 # --- generated fixtures that are large ---
 datasets/fixtures/longctx/long/
 datasets/_mined/
+
+# --- build artifacts: the lazy package and its inputs ---
+_pkg/
+_build_rt/
+*.tar.gz

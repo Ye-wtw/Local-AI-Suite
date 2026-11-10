@@ -24,7 +24,40 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(HERE)
 sys.path.insert(0, HERE)
 
+from console import make_stdout_safe  # noqa: E402
+
+make_stdout_safe()
+
 NL = chr(10)
+
+
+def _stdout_safe(s):
+    """Return s unchanged when the console can encode it, else ASCII fallbacks.
+
+    A Chinese Windows console is GBK, and GBK cannot encode ✓ ✗ → ⚠. The first
+    run therefore died with UnicodeEncodeError on the very line meant to tell a
+    newcomer their environment was fine — the worst possible place to crash,
+    because it looks like the project is broken before it has done anything.
+    Measured: the bundled Python 3.12 on a GBK console failed exactly here.
+    """
+    try:
+        s.encode(sys.stdout.encoding or "utf-8")
+        return s
+    except (UnicodeEncodeError, LookupError):
+        for bad, good in (("✓", "[OK]"), ("✗", "[!!]"), ("⚠", "[!]"),
+                          ("→", "->"), ("·", "*")):
+            s = s.replace(bad, good)
+        return s
+
+
+def _print(s=""):
+    """print() that cannot die on the console encoding."""
+    try:
+        print(s)
+    except UnicodeEncodeError:
+        print(_stdout_safe(s))
+
+
 OK, WARN, BAD = "✓", "!", "✗"
 
 
@@ -142,7 +175,7 @@ def main():
         except Exception as e:
             ok, msg, hint = False, "%s %s 检查异常" % (BAD, name), str(e)[:80]
         results[name] = ok
-        print("  %-58s" % msg)
+        _print("  %-58s" % msg)
         if hint and not ok:
             print("      → %s" % hint)
 
@@ -186,9 +219,9 @@ def main():
     print()
 
     if not critical_ok:
-        print("  ⚠ 有阻塞项未满足,先处理上面的提示。")
+        _print("  ⚠ 有阻塞项未满足,先处理上面的提示。")
         return 1
-    print("  ✓ 基础环境就绪。")
+    _print("  ✓ 基础环境就绪。")
     return 0
 
 
