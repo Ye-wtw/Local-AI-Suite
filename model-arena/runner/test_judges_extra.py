@@ -417,6 +417,92 @@ def test_d5_ifeval_checkers():
     check("checkers MCQ 答错判错", CK.judge_mcq("答案是 B", "A")["correct"] is False)
 
 
+# ---------------------------------------------------------------- D13 文笔
+
+def test_d13_prose():
+    """D13 文笔/剧情：形式指标正确 + 双向判据有效。
+
+    这个维度**只测形式**，不测文学价值（规则判分判断不了文学性，
+    而项目禁止 LLM 裁判）。所以测试也只钉形式：复读能不能被抓、
+    套话命中是否一票否决、没有汉字的回复是否被单独分类。
+    """
+    import d13_prose as D
+
+    # --- 基础指标 ---
+    rep = "他走进屋子。" * 6
+    not_rep = ("雨停了。菜市场的塑料棚还在滴水。棚布被晨光打成半透明的橘色。"
+               "水珠顺着褶皱滚下来，砸在铁皮秤盘上，一声一声地脆响。")
+    check("D13 复读的 distinct_2 更低",
+          D.distinct_n(rep, 2) < D.distinct_n(not_rep, 2),
+          (round(D.distinct_n(rep, 2), 3), round(D.distinct_n(not_rep, 2), 3)))
+    check("D13 完全重复 distinct_2 接近 0", D.distinct_n(rep, 2) < 0.2,
+          round(D.distinct_n(rep, 2), 3))
+    check("D13 空文本不除零", D.distinct_n("", 2) == 0.0 and D.ttr("") == 0.0)
+
+    # 句长节奏：长短交替的 CV 必须高于等长句
+    even = "他走进屋子。他坐下喝水。他抬头看天。他低头写字。"
+    uneven = "他走进屋子。坐下。抬头看了一眼窗外那片灰白的天，很久没有动。写。"
+    check("D13 长短交替的句长CV更高",
+          D.cv_sentence_len(uneven) > D.cv_sentence_len(even),
+          (round(D.cv_sentence_len(uneven), 3), round(D.cv_sentence_len(even), 3)))
+
+    # 感官词表：不能靠单字误报
+    check("D13 感官词表能识别视觉", "visual" in D.measure("暮色四合，斜阳照在斑驳的墙上")["sensory_cats"])
+    check("D13 纯说明文不误报感官",
+          len(D.measure("这段代码的时间复杂度是 O(n)，空间复杂度也是 O(n)。")["sensory_cats"]) == 0,
+          D.measure("这段代码的时间复杂度是 O(n)。")["sensory_cats"])
+
+    # --- 判据：套话一票否决 ---
+    entry = {"id": "t", "subcat": "prose", "expect": {"checks": [
+        {"type": "cliche_hits", "op": "not_contains", "value": []},
+        {"type": "han_count", "op": "gte", "value": 10},
+    ]}}
+    check("D13 无套话通过", D.judge_prose(entry, uneven)["correct"] is True,
+          D.judge_prose(entry, uneven)["reason"])
+    v = D.judge_prose(entry, "总之，他走进屋子。首先，他坐下喝水。")
+    check("D13 命中套话判错", v["correct"] is False, v["reason"])
+    check("D13 套话被点名", any("cliche" in str(d.get("type")) for d in v["detail"]), None)
+
+    # --- 关键回归：没有汉字 ≠ 写得差 ---
+    # 实测 mock 端点回英文 "I need more information to answer this."，
+    # 若当成"写得差"会让所有形式指标归零，看起来像模型文笔极差。
+    v = D.judge_prose(entry, "I need more information to answer this.")
+    check("D13 无汉字被单独标记", v.get("no_han") is True, v.get("reason"))
+    v2 = D.judge_prose(entry, "")
+    check("D13 空回答被单独标记", v2.get("no_han") is True, v2.get("reason"))
+
+    # --- in_range 不能崩（历史 bug：float(list) TypeError）---
+    e2 = {"id": "t2", "subcat": "prose", "expect": {"checks": [
+        {"type": "ttr", "op": "in_range", "value": [0.20, 0.65]},
+        {"type": "han_count", "op": "in_range", "value": [10, 500]},
+    ]}}
+    try:
+        r2 = D.judge_prose(e2, not_rep)
+        check("D13 in_range 不抛异常", isinstance(r2.get("detail"), list), r2.get("reason"))
+    except Exception as ex:
+        check("D13 in_range 不抛异常", False, type(ex).__name__)
+
+    # --- 汇总分档 ---
+    recs = [
+        {"id": "a", "subcat": "prose", "correct": True, "score": 100,
+         "metrics": {"distinct_2": 0.9, "ttr": 0.3, "cv_sentence_len": 0.4,
+                     "sensory_cats": ["visual", "audio"], "turn_hits": ["却"],
+                     "dialogue_ratio": 0.1, "punct_kinds": 6}},
+        {"id": "b", "subcat": "prose_long", "correct": False, "score": 50,
+         "metrics": {"distinct_2": 0.7, "ttr": 0.25, "cv_sentence_len": 0.2,
+                     "sensory_cats": ["visual"], "turn_hits": [],
+                     "dialogue_ratio": 0.0, "punct_kinds": 4}},
+        {"id": "c", "subcat": "prose", "no_han": True, "correct": False, "score": 0,
+         "metrics": {}},
+    ]
+    s = D.summarize(recs, sampling={"temperature": 0})
+    check("D13 汇总把无汉字单独计数", s.get("n_no_han") == 1, s.get("n_no_han"))
+    check("D13 汇总分母排除无汉字", s.get("n_valid") == 2, s.get("n_valid"))
+    check("D13 汇总记录采样参数", s.get("sampling", {}).get("temperature") == 0, s.get("sampling"))
+    check("D13 短篇/长篇分开报", (s.get("short") or {}).get("n") == 1
+          and (s.get("long") or {}).get("n") == 1, (s.get("short"), s.get("long")))
+
+
 # ---------------------------------------------------------------- 端点流式
 
 def test_endpoint_stream_reasoning():
@@ -715,7 +801,7 @@ def main():
     groups = (test_d10_chess, test_d7_longctx, test_d9_judge, test_d6_agent,
               test_d8_reliability, test_d12_code_must_match, test_d5_ifeval_checkers,
               test_public_judge_routing, test_rescore_refuses_empty_work,
-              test_endpoint_stream_reasoning, test_leaderboard_guards,
+              test_d13_prose, test_endpoint_stream_reasoning, test_leaderboard_guards,
               test_judge_version_covers_all_judges)
     for fn in groups:
         print()

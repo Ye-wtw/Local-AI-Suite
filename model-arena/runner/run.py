@@ -313,6 +313,78 @@ def suite_instruction(ep, limit=None, verbose=True):
              "n_valid": len([x for x in records if not x.get("error")]), "n_errors": len([x for x in records if x.get("error")]), "accuracy": (sum(1 for x in records if not x.get("error") and x["correct"]) / max(1, len([x for x in records if not x.get("error")]))), "accuracy_with_errors": correct / len(records) if records else 0.0,
              "elapsed_s": dt, "by_checker": ctype}, records)
 
+def suite_writing(ep, limit=None, verbose=True):
+    """D13 文笔/剧情创作 —— 纯形式指标，不评文学价值。
+
+    测什么：复读(distinct_n)、词汇丰富度(ttr)、套话命中、感官覆盖、句长节奏(cv)、
+            剧情推进(turn)、对话占比、标点多样性、字数。
+    不测什么：写得好不好。规则判分判断不了文学价值，而这项目禁止 LLM 裁判(铁律 1)。
+
+    短篇/长篇同维度内分档（subcat 以 _long 结尾算长篇），汇总分开报中位数：
+    通过率相同不代表风格相同（一个可能"写得短所以不重复"，另一个"写得长但节奏平"）。
+
+    采样参数一并记进汇总 —— 实测同一模型 temp=0 与 temp=1.0 的 distinct_2
+    分别是 0.984 与 1.000，不记录就没法跨模型比较。
+    """
+    import d13_prose as d13
+    rows = _load_full("D13")
+    if limit:
+        rows = rows[:limit]
+    print()
+    print("[D13 文笔/剧情] %d 题, endpoint=%s model=%s" % (len(rows), ep.name, ep.model))
+    print("  注意：本维度只测**形式合规性**（复读/套话/感官/节奏/推进/对话/标点/字数），")
+    print("        不判断文学价值。分数高低不代表写得好坏。")
+    # 采样参数随结果一起记录
+    sampling = {}
+    for k in ("temperature", "top_p", "top_k", "extra"):
+        v = getattr(ep, k, None)
+        if v is None and isinstance(getattr(ep, "extra", None), dict):
+            v = ep.extra.get(k)
+        if v is not None:
+            sampling[k] = v
+    print("  采样参数: %s" % (sampling or "端点未声明（不同采样下的分数不可比）"))
+    records = []
+    t0 = time.perf_counter()
+    for i, r in enumerate(rows, 1):
+        try:
+            res = ep.chat([{"role": "user", "content": r["user"]}])
+            v = d13.judge_prose(r, res["text"])
+            m = d13.measure(res["text"])
+            rec = {"id": r["id"], "subcat": r.get("subcat"), "length": r.get("length"),
+                   "prompt": r["user"], "response": res["text"],
+                   "latency_s": res["latency_s"],
+                   "correct": v["correct"], "score": v["score"],
+                   "reason": v["reason"], "detail": v["detail"],
+                   "no_han": bool(v.get("no_han")), "metrics": m}
+        except EndpointError as e:
+            rec = mark_error({"id": r["id"], "subcat": r.get("subcat"),
+                              "length": r.get("length"), "response": "",
+                              "metrics": {}}, e)
+        records.append(rec)
+        if verbose:
+            print("  %2d/%2d %-26s %s  %.0f分  %s"
+                  % (i, len(rows), r["id"], "PASS" if rec["correct"] else "fail",
+                     rec.get("score") or 0, (rec.get("reason") or "")[:34]))
+    dt = time.perf_counter() - t0
+    stat = d13.summarize(records, sampling=sampling)
+    stat["suite"] = "writing"
+    stat["endpoint"] = ep.name
+    stat["model"] = ep.model
+    stat["elapsed_s"] = dt
+    # 分档与分项中位数打印
+    for label, key in (("短篇", "short"), ("长篇", "long")):
+        s = stat.get(key) or {}
+        if not s.get("n"):
+            continue
+        print("  [%s] n=%d 通过率=%.0f%% distinct_2=%.3f ttr=%.3f 句长CV=%.2f "
+              "感官=%.1f 转折=%.1f 对话比=%.3f 标点=%s"
+              % (label, s["n"], s["pass_rate"] * 100, s["median_distinct_2"],
+                 s["median_ttr"], s["median_cv_sentence_len"],
+                 s["median_sensory_cats"] or 0, s["median_turn_hits"] or 0,
+                 s["median_dialogue_ratio"], s["median_punct_kinds"]))
+    return stat, records
+
+
 def suite_chess(ep, limit=None, verbose=True):
     """D10 board-game dimension (chess): engine-verified answers."""
     path = os.path.join(ROOT, "datasets", "generated", "D10_generated.jsonl")
@@ -1777,7 +1849,7 @@ def main():
                     help="在题目前注入 agent 工具环境(模拟 DSH 等 harness 的上下文占用)")
     ap.add_argument("--no-resume", action="store_true",
                     help="忽略检查点,从头重跑(默认自动续跑)")
-    ap.add_argument("--suite", default="math", choices=["math", "speed", "mcq", "instruction", "chess", "longctx", "code", "agent", "reliability", "realworld", "dynamic", "compression", "vision", "hint", "lcb", "public", "smoke", "canary", "full", "probe", "calib", "coarse", "slow", "agent-probe", "all"])
+    ap.add_argument("--suite", default="math", choices=["math", "speed", "mcq", "instruction", "chess", "longctx", "code", "agent", "reliability", "realworld", "dynamic", "compression", "writing", "vision", "hint", "lcb", "public", "smoke", "canary", "full", "probe", "calib", "coarse", "slow", "agent-probe", "all"])
     ap.add_argument("--max-rounds", type=int, default=3, help="dynamic suite: attempts per task")
     ap.add_argument("--task-timeout", type=int, default=300, help="dynamic suite: per-task wall clock cap (seconds)")
     ap.add_argument("--limit", type=int, default=None, help="max questions (math)")
@@ -1962,6 +2034,10 @@ def main():
         s, recs = suite_vision(ep, limit=args.limit)
         out["vision"] = s
         save("D11_vision_%s_%s.json" % (ep.name, stamp), {"summary": s, "records": recs})
+    if args.suite == "writing":
+        s, recs = suite_writing(ep, limit=args.limit)
+        out["writing"] = s
+        save("D13_writing_%s_%s.json" % (ep.name, stamp), {"summary": s, "records": recs})
     if args.suite in ("smoke", "canary", "full", "probe", "calib", "coarse", "slow", "agent-probe"):
         s, recs = suite_subset(ep, args.suite)
         out["level"] = s

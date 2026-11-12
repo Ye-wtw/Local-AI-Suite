@@ -84,6 +84,7 @@ ORDER = [
     ("longctx",     "D7",  "长上下文"),
     ("vision",      "D11", "视觉"),
     ("compression", "D12", "压缩"),
+    ("writing",     "D13", "文笔"),
 ]
 
 
