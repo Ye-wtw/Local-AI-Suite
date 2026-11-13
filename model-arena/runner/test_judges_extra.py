@@ -502,6 +502,52 @@ def test_d13_prose():
     check("D13 短篇/长篇分开报", (s.get("short") or {}).get("n") == 1
           and (s.get("long") or {}).get("n") == 1, (s.get("short"), s.get("long")))
 
+    # --- 新增判据：题面要求的硬项必须真的能判 ---
+    # 第一版有 7 处"题面要求了但判分器没判"（至少 8 句 / 必须出现「铁轨」/
+    # 恰好一段对话 / 改写保留信息），那样的题模型完全不按要求写也能拿 100 分。
+    probe = "他沿着铁轨走。风很大。「走吧。」「好。」"
+    m = D.measure(probe)
+    check("D13 能数句子", m.get("sentence_count") == 4, m.get("sentence_count"))
+    check("D13 能数对话段数", m.get("dialogue_count") == 2, m.get("dialogue_count"))
+
+    e3 = {"id": "t3", "subcat": "constraint", "expect": {"checks": [
+        {"type": "contains", "op": "contains", "value": ["铁轨"]},
+        {"type": "dialogue_count", "op": "in_range", "value": [1, 1]},
+    ]}}
+    check("D13 有铁轨但两段对话 -> 判错",
+          D.judge_prose(e3, probe)["correct"] is False,
+          D.judge_prose(e3, probe)["reason"])
+    one = "他沿着铁轨走。「走吧。」"
+    check("D13 有铁轨且一段对话 -> 判对",
+          D.judge_prose(e3, one)["correct"] is True,
+          D.judge_prose(e3, one)["reason"])
+    check("D13 缺铁轨判错",
+          D.judge_prose({"expect": {"checks": [
+              {"type": "contains", "op": "contains", "value": ["铁轨"]}]}},
+              "他沿着铁道走。")["correct"] is False, None)
+
+    # keeps_info：改写题的信息保留必须逐点核对
+    keep = {"expect": {"checks": [{"type": "keeps_info", "op": "gte", "min": 1.0,
+                                   "value": [["屋子", "房间"], ["桌"], ["灯"]]}]}}
+    check("D13 改写信息全保留判对",
+          D.judge_prose(keep, "那间屋子里有一张桌子，桌上有一盏灯。")["correct"] is True,
+          None)
+    check("D13 改写丢了灯判错",
+          D.judge_prose(keep, "那间屋子里有一张桌子。")["correct"] is False, None)
+
+    # 覆盖率审计本身要能发现漏判
+    import importlib.util as _iu
+    _spec = _iu.spec_from_file_location(
+        "gen_d13", os.path.join(ROOT, "scripts", "gen_d13_prose.py"))
+    _g = _iu.module_from_spec(_spec)
+    _spec.loader.exec_module(_g)
+    _bad = [{"id": "x", "user": "至少 8 个句子。", "expect": {"checks": []}}]
+    check("D13 审计能发现漏判的句数要求",
+          any("sentence_count" in p for p in _g.audit_coverage(_bad)),
+          _g.audit_coverage(_bad))
+    check("D13 审计对真实题库无告警",
+          _g.audit_coverage(_g.build()) == [], _g.audit_coverage(_g.build())[:2])
+
 
 # ---------------------------------------------------------------- 端点流式
 

@@ -189,6 +189,12 @@ def measure(text):
         "dialogue_ratio": (han_count(quoted) / float(han_count(txt))) if han_count(txt) else 0.0,
         "punct_kinds": len({c for c in txt if c in PUNCT_KINDS}),
         "opening_repeat": _opening_repeat(txt),
+        # 下面四个是为了让"题面写了的硬要求"真的被判到。
+        # 审计发现 7 处题面要求没有对应判据（如"至少 8 个句子""必须出现铁轨"），
+        # 那样的题模型完全不按要求写也能拿 100 分。
+        "sentence_count": len([s for s in split_sentences(txt) if han_count(s) > 0]),
+        "dialogue_count": len(QUOTE_RE.findall(txt)),
+        "contains": txt,          # 供 contains/not_contains 用原始文本匹配
     }
 
 
@@ -235,6 +241,40 @@ def _check_ok(chk, m):
         if op == "lte":
             return g <= v, round(g, 4), v
         return g >= v, round(g, 4), v
+    if t in ("sentence_count", "dialogue_count", "burstiness"):
+        g = int(round(got if isinstance(got, (int, float)) else 0))
+        if op == "in_range":
+            lo, hi = int(val[0]), int(val[1])
+            return lo <= g <= hi, g, [lo, hi]
+        v = int(val)
+        if op == "lte":
+            return g <= v, g, v
+        return g >= v, g, v
+    if t == "keeps_info":
+        # 改写题专用：给出若干"必须保留的信息点"，每个点的任一别名出现即算保留。
+        # 不判"改得好不好"（那没有规则解），只判信息有没有丢。
+        groups = val if isinstance(val, list) else [val]
+        text = m.get("contains", "")
+        lost = []
+        for g in groups:
+            alts = g if isinstance(g, list) else [g]
+            if not any(a in text for a in alts):
+                lost.append(alts[0])
+        keep = (len(groups) - len(lost)) / float(len(groups)) if groups else 1.0
+        if op == "gte":
+            return keep >= float(val if not isinstance(val, list) else 1.0), \
+                round(keep, 3), ">=%s" % chk.get("min", 1.0)
+        need = float(chk.get("min", 1.0))
+        return keep >= need, round(keep, 3), need
+    if t == "contains":
+        # value 可以是字符串或字符串列表，全部必须出现
+        need = val if isinstance(val, list) else [val]
+        missing = [w for w in need if w not in m.get("contains", "")]
+        return (not missing), (missing or "all present"), need
+    if t == "not_contains":
+        need = val if isinstance(val, list) else [val]
+        hit = [w for w in need if w in m.get("contains", "")]
+        return (not hit), (hit or "none"), need
     if t in ("han_count", "punct_kinds", "opening_repeat"):
         g = int(got or 0)
         if op == "in_range":
