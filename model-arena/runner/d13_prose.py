@@ -170,6 +170,77 @@ def _sense_hits(text, words, roots):
     return out
 
 
+
+# ---------------- chat 语言感（反 AI 腔）----------------
+#
+# D13 原本只测「创作」。日常对话是另一类能力：措辞克制、不奉承、不说教、
+# 不把一句话拆成一堆 Markdown 分点。本地模型最常犯的就是这个。
+#
+# 词表不是凭空想的，来自实测：扫本机 results/ 611 个文件、34320 条真实回答，
+# 统计这些短语的实际出现频次 ——
+#   以下是 541 / 首先 120 / 当然可以 44 / 作为一个 33 / 需要注意的是 20
+#   / 综上所述 18 / 总之 10 / 简而言之 2 / 值得注意的是 2
+# 所以下面每一条都有据可查，而不是我猜的。
+
+CHAT_OPENERS = [
+    # 开场套话：模型习惯先声明一句再说正文
+    "当然可以", "当然", "好的", "没问题", "很高兴为你", "让我来",
+    "我来为你", "以下就是", "以下分析", "以下是", "下面是",
+]
+
+CHAT_SYCOPHANCY = [
+    # 奉承：真实语料里出现 33 次「作为一个」，44 次「当然可以」
+    "好问题", "这个问题很", "你的问题很好", "非常好的问题",
+    "作为一个", "作为AI", "作为一个人工智能", "我是AI",
+    "我理解你的", "你的感受", "希望能帮", "希望这能帮", "希望对你",
+    "希望这些", "希望这份", "如果还有", "随时告诉我",
+]
+
+CHAT_PREACHY = [
+    # 说教/总结陈词：把回答写成文章而不是对话
+    "首先", "其次", "再次", "最后", "综上", "总之", "总的来说",
+    "值得注意的是", "需要注意的是", "需要指出", "简而言之",
+    "总结一下", "一句话总结", "总的来说",
+]
+
+CHAT_STRUCTURE_MARKERS = [
+    # 结构标记：把一句话答成汇报
+    "1.", "2.", "3.", "一、", "二、", "三、",
+    "- ", "* ", "###", "##", "**",
+]
+
+
+def chat_tone(text):
+    """量一份回答的「AI 腔」程度。全部是**存在性**判断，不做主观打分。
+
+    返回计数而不是布尔值：模型偶尔说一次「首先」不算毛病，整段都是才是。
+    所以判据用 lte 阈值，而不是 not_contains 的一票否决 —— 
+    这和 cliche_hits（创作题一票否决）口径不同，是故意的：
+    创作题要求「整篇没有套话」，对话题只要求「别把对话写成公文」。
+    """
+    txt = text or ""
+    head = txt[:80]
+    return {
+        "chat_opener": sum(1 for w in CHAT_OPENERS if w in head),
+        "chat_sycophancy": sum(1 for w in CHAT_SYCOPHANCY if w in txt),
+        "chat_preachy": sum(1 for w in CHAT_PREACHY if w in txt),
+        "chat_bullets": _count_bullets(txt),
+        "chat_bold": txt.count("**") // 2,
+        "chat_para": len([p for p in txt.split(chr(10) + chr(10)) if p.strip()]),
+    }
+
+
+def _count_bullets(text):
+    """数「分点」的数量：行首的 1. / - / 一、 这类。"""
+    import re as _re
+    n = 0
+    for line in (text or "").splitlines():
+        s = line.strip()
+        if _re.match(r"^(\d+[.):]|[-*+]\s|[一二三四五六七八九十]+[、.])", s):
+            n += 1
+    return n
+
+
 def measure(text):
     """一次算出全部指标，供 judge 与汇总共用。"""
     txt = text or ""
@@ -195,6 +266,8 @@ def measure(text):
         "sentence_count": len([s for s in split_sentences(txt) if han_count(s) > 0]),
         "dialogue_count": len(QUOTE_RE.findall(txt)),
         "contains": txt,          # 供 contains/not_contains 用原始文本匹配
+        # chat 语言感：只有在题目是 chat 类时才会被 check 用到
+        **chat_tone(txt),
     }
 
 
@@ -250,6 +323,18 @@ def _check_ok(chk, m):
         if op == "lte":
             return g <= v, g, v
         return g >= v, g, v
+    if t in ("chat_opener", "chat_sycophancy", "chat_preachy", "chat_bullets",
+             "chat_bold", "chat_para"):
+        # chat 语言感一律用**阈值**判，不用一票否决。
+        # 模型偶尔说一次「首先」不算毛病，整段都在说才是。所以默认 lte。
+        g = int(got or 0)
+        if op == "in_range":
+            lo, hi = int(val[0]), int(val[1])
+            return lo <= g <= hi, g, [lo, hi]
+        v = int(val)
+        if op == "gte":
+            return g >= v, g, v
+        return g <= v, g, v
     if t == "keeps_info":
         # 改写题专用：给出若干"必须保留的信息点"，每个点的任一别名出现即算保留。
         # 不判"改得好不好"（那没有规则解），只判信息有没有丢。
@@ -363,14 +448,22 @@ def summarize(records, sampling=None):
             "median_punct_kinds": _median([m.get("punct_kinds") for m in ms]),
             "cliche_rate": round(
                 sum(1 for m in ms if m.get("cliche_hits")) / float(len(ms)), 4),
+            # chat 类的 AI 腔分项：中位数为 0 说明多数回答干净，
+            # 大于 0 说明这批输出普遍带腔调 —— 比单看通过率有信息量
+            "median_chat_sycophancy": _median([m.get("chat_sycophancy") for m in ms]),
+            "median_chat_preachy": _median([m.get("chat_preachy") for m in ms]),
+            "median_chat_bullets": _median([m.get("chat_bullets") for m in ms]),
         }
 
     by_sub = {}
     for r in valid:
         by_sub.setdefault(r.get("subcat") or "?", []).append(r)
     # 短篇/长篇分档（subcat 以 _long 结尾算长篇）
-    short = [r for r in valid if not (r.get("subcat") or "").endswith("_long")]
-    long_ = [r for r in valid if (r.get("subcat") or "").endswith("_long")]
+    # chat 单独一档：它和创作不是同一种能力，混在一起报会把差异抹平
+    chat = [r for r in valid if (r.get("subcat") or "") == "chat"]
+    creative = [r for r in valid if (r.get("subcat") or "") != "chat"]
+    short = [r for r in creative if not (r.get("subcat") or "").endswith("_long")]
+    long_ = [r for r in creative if (r.get("subcat") or "").endswith("_long")]
 
     return {
         "dim": "D13", "suite": "writing",
@@ -386,5 +479,7 @@ def summarize(records, sampling=None):
         "sampling": sampling or {},
         "short": agg(short),
         "long": agg(long_),
+        "chat": agg(chat),
+        "creative": agg(creative),
         "by_subcat": {k: agg(v) for k, v in sorted(by_sub.items())},
     }

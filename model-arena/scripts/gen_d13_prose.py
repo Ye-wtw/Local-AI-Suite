@@ -215,6 +215,74 @@ def build():
         "硬约束题：物件必须出现"))
     rows[-1]["user_head"] = "你"   # 供 verify 检查第二人称，判分侧暂不强制
 
+    # ============ chat 日常对话（反 AI 腔）============
+    #
+    # 设计要点：题目必须**诱导**模型犯 AI 腔，否则测不出来。
+    # 实测扫 34320 条真实回答，AI 腔只在特定问法下才大量出现，
+    # 技术题几乎不触发 —— 所以这里刻意选了会被 AI 腔污染的场景：
+    # 简单操作、情绪倾诉、简短事实、吐槽请求。
+    #
+    # 判据一律用阈值（lte），不用一票否决：模型偶尔一个「首先」不是毛病，
+    # 整段都在分点说教才是。这与创作题 cliche_hits 的一票否决口径不同，是故意的。
+
+    chat_specs = [
+        ("D13_chat_0001",
+         "我手机上的微信怎么删掉？",
+         "极简操作问；AI 腔典型表现是「当然可以！以下是步骤 1.2.3.」",
+         40),
+        ("D13_chat_0002",
+         "烦死了，今天又被领导骂了。",
+         "情绪倾诉；AI 腔典型表现是「我理解你的感受，希望这些建议能帮到你」+ 分点建议",
+         120),
+        ("D13_chat_0003",
+         "北京现在几点？",
+         "一句话事实问；AI 腔典型表现是「这是一个好问题，需要注意时区…」",
+         60),
+        ("D13_chat_0004",
+         "帮我写个 Python 函数算斐波那契。",
+         "技术但要求简短；AI 腔典型表现是先声明「当然可以」再列 1.2.3. 讲解",
+         200),
+        ("D13_chat_0005",
+         "这个红色和蓝色哪个好看？",
+         "主观选择问；AI 腔典型表现是「这取决于多个因素」+ 分点权衡",
+         120),
+        ("D13_chat_0006",
+         "嗯。",
+         "最短回应；测是否会过度解读、硬凑一段安慰",
+         60),
+    ]
+    for qid, user, note, max_han in chat_specs:
+        rows.append(q(
+            qid, "chat", user,
+            [
+                {"type": "chat_sycophancy", "op": "lte", "value": 0,
+                 "label": "不奉承"},
+                {"type": "chat_preachy", "op": "lte", "value": 0,
+                 "label": "不说教"},
+                {"type": "chat_bullets", "op": "lte", "value": 0,
+                 "label": "不分点"},
+                {"type": "chat_bold", "op": "lte", "value": 0,
+                 "label": "不加粗"},
+                {"type": "han_count", "op": "lte", "value": max_han,
+                 "label": "长度配得上问题"},
+            ],
+            note,
+        ))
+
+    # 反例库：这些是 chat 类要抓的典型坏样子，--verify 逐条验证判不过
+    rows.append(q(
+        "D13_chat_0007", "chat",
+        "今天下雨了。",
+        [
+            {"type": "chat_sycophancy", "op": "lte", "value": 0, "label": "不奉承"},
+            {"type": "chat_preachy", "op": "lte", "value": 0, "label": "不说教"},
+            {"type": "chat_bullets", "op": "lte", "value": 0, "label": "不分点"},
+            {"type": "han_count", "op": "lte", "value": 80,
+             "label": "长度配得上问题"},
+        ],
+        "陈述句；测会不会硬凑建议",
+    ))
+
     # ============ 长篇（_long 后缀）============
     long_specs = [
         ("D13_prose_long_0001", "prose_long",
@@ -311,6 +379,9 @@ SUPPORTED_CHECKS = {
     "ttr", "cv_sentence_len", "dialogue_ratio", "dialogue_count", "han_count",
     "punct_kinds", "opening_repeat", "sentence_count", "contains",
     "not_contains", "keeps_info",
+    # chat 语言感（实测词表来自 34320 条真实回答，见 d13_prose.py）
+    "chat_opener", "chat_sycophancy", "chat_preachy", "chat_bullets",
+    "chat_bold", "chat_para",
 }
 
 
@@ -424,6 +495,34 @@ def verify(path=None):
             ok = False
         else:
             print("   PASS 「%s」判不过 -> %s" % (name, v["reason"][:50]))
+    print()
+
+    # --- chat 语言感：AI 腔必须被抓 ---
+    print("[chat] 日常对话的 AI 腔必须判不过")
+    chat_entry = {"expect": {"checks": [
+        {"type": "chat_sycophancy", "op": "lte", "value": 0},
+        {"type": "chat_preachy", "op": "lte", "value": 0},
+        {"type": "chat_bullets", "op": "lte", "value": 0},
+        {"type": "han_count", "op": "lte", "value": 60},
+    ]}}
+    chat_cases = [
+        ("好回答", "不需要，直接删掉就行。", True),
+        ("奉承开场", "当然可以！这是一个好问题。", False),
+        ("说教总结", "首先你需要打开设置，其次找到账户，总之就是这样。", False),
+        ("分点罗列", "1. 打开设置\n2. 找到账户\n3. 点击删除", False),
+        ("希望帮到你", "希望这些能帮到你，随时告诉我。", False),
+        ("过度展开", "这个问题需要从多个角度来分析，" + "很" * 80, False),
+    ]
+    for name, text, want_pass in chat_cases:
+        v = D.judge_prose(chat_entry, text)
+        got = v["correct"]
+        if got == want_pass:
+            print("   PASS 「%s」%s" % (name, "判过" if want_pass else "判不过"))
+        else:
+            print("   FAIL 「%s」期望%s，实际%s（%s）"
+                  % (name, "判过" if want_pass else "判不过",
+                     "判过" if got else "判不过", v["reason"]))
+            ok = False
     print()
 
     # --- 关键回归：题面要求的"漏判"曾经让不合格答案满分 ---

@@ -372,16 +372,23 @@ def suite_writing(ep, limit=None, verbose=True):
     stat["model"] = ep.model
     stat["elapsed_s"] = dt
     # 分档与分项中位数打印
-    for label, key in (("短篇", "short"), ("长篇", "long")):
+    for label, key in (("对话", "chat"), ("短篇", "short"), ("长篇", "long")):
         s = stat.get(key) or {}
         if not s.get("n"):
             continue
-        print("  [%s] n=%d 通过率=%.0f%% distinct_2=%.3f ttr=%.3f 句长CV=%.2f "
-              "感官=%.1f 转折=%.1f 对话比=%.3f 标点=%s"
-              % (label, s["n"], s["pass_rate"] * 100, s["median_distinct_2"],
-                 s["median_ttr"], s["median_cv_sentence_len"],
-                 s["median_sensory_cats"] or 0, s["median_turn_hits"] or 0,
-                 s["median_dialogue_ratio"], s["median_punct_kinds"]))
+        if key == "chat":
+            print("  [%s] n=%d 通过率=%.0f%% 奉承=%.1f 说教=%.1f 分点=%.1f"
+                  % (label, s["n"], s["pass_rate"] * 100,
+                     s.get("median_chat_sycophancy") or 0,
+                     s.get("median_chat_preachy") or 0,
+                     s.get("median_chat_bullets") or 0))
+        else:
+            print("  [%s] n=%d 通过率=%.0f%% distinct_2=%.3f ttr=%.3f 句长CV=%.2f "
+                  "感官=%.1f 转折=%.1f 对话比=%.3f 标点=%s"
+                  % (label, s["n"], s["pass_rate"] * 100, s["median_distinct_2"],
+                     s["median_ttr"], s["median_cv_sentence_len"],
+                     s["median_sensory_cats"] or 0, s["median_turn_hits"] or 0,
+                     s["median_dialogue_ratio"], s["median_punct_kinds"]))
     return stat, records
 
 

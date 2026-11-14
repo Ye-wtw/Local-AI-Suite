@@ -548,6 +548,57 @@ def test_d13_prose():
     check("D13 审计对真实题库无告警",
           _g.audit_coverage(_g.build()) == [], _g.audit_coverage(_g.build())[:2])
 
+    # --- chat 语言感：反 AI 腔 ---
+    # 词表来自实测：扫本机 results/ 611 个文件 34320 条回答，
+    # 「以下是」541 次、「首先」120 次、「当然可以」44 次。
+    good = "不需要，直接删掉就行。"
+    check("D13 干净回答的 AI 腔指标全为 0",
+          all(D.chat_tone(good)[k] == 0 for k in
+              ("chat_sycophancy", "chat_preachy", "chat_bullets", "chat_bold")),
+          D.chat_tone(good))
+
+    bad = "当然可以！这是一个好问题。首先，你需要打开设置；其次找到账户。总之就是这样。"
+    t = D.chat_tone(bad)
+    check("D13 能抓到奉承开场", t["chat_sycophancy"] > 0, t["chat_sycophancy"])
+    check("D13 能抓到说教总结", t["chat_preachy"] > 0, t["chat_preachy"])
+
+    bullets = "1. 打开设置\n2. 找到账户\n3. 点击删除"
+    check("D13 能数分点", D.chat_tone(bullets)["chat_bullets"] == 3,
+          D.chat_tone(bullets)["chat_bullets"])
+
+    chat_e = {"expect": {"checks": [
+        {"type": "chat_sycophancy", "op": "lte", "value": 0},
+        {"type": "chat_preachy", "op": "lte", "value": 0},
+        {"type": "chat_bullets", "op": "lte", "value": 0},
+    ]}}
+    check("D13 chat 干净回答判过", D.judge_prose(chat_e, good)["correct"] is True,
+          D.judge_prose(chat_e, good)["reason"])
+    check("D13 chat 奉承判错", D.judge_prose(chat_e, bad)["correct"] is False,
+          D.judge_prose(chat_e, bad)["reason"])
+    check("D13 chat 分点罗列判错", D.judge_prose(chat_e, bullets)["correct"] is False,
+          D.judge_prose(chat_e, bullets)["reason"])
+
+    # 汇总要把 chat 和创作分开，且 chat 档报 AI 腔中位数
+    mix = [
+        {"id": "c1", "subcat": "chat", "correct": True, "score": 100,
+         "metrics": {"han_count": 20, "chat_sycophancy": 0, "chat_preachy": 0,
+                     "chat_bullets": 0}},
+        {"id": "c2", "subcat": "chat", "correct": False, "score": 0,
+         "metrics": {"han_count": 30, "chat_sycophancy": 1, "chat_preachy": 2,
+                     "chat_bullets": 3}},
+        {"id": "p1", "subcat": "prose", "correct": True, "score": 100,
+         "metrics": {"distinct_2": 0.9, "ttr": 0.3, "cv_sentence_len": 0.4,
+                     "sensory_cats": ["visual"], "turn_hits": [], "dialogue_ratio": 0,
+                     "punct_kinds": 5}},
+    ]
+    sm = D.summarize(mix, sampling={})
+    check("D13 汇总把 chat 单列", (sm.get("chat") or {}).get("n") == 2, (sm.get("chat") or {}).get("n"))
+    check("D13 汇总 chat 不进创作档",
+          (sm.get("creative") or {}).get("n") == 1, (sm.get("creative") or {}).get("n"))
+    check("D13 chat 档报 AI 腔中位数",
+          "median_chat_preachy" in (sm.get("chat") or {}),
+          list((sm.get("chat") or {}).keys())[:5])
+
 
 # ---------------------------------------------------------------- 端点流式
 
