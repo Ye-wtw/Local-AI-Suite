@@ -122,11 +122,28 @@ def check_bank(full_dir):
     return issues
 
 
+# Dimensions that make_subset.py samples into the smoke/canary/full levels.
+# Keep in sync with runner/make_subset.py DIMS.
+SUBSET_DIMS = {"D2", "D3", "D4", "D5", "D6", "D7", "D8", "D9", "D10"}
+
+
 def check_subsets(root):
-    """A level file must cover exactly what the full bank holds."""
+    """A level file must cover exactly what make_subset.py is meant to sample.
+
+    Not "everything in datasets/full" — D11 (vision) needs an engine launched
+    with --mmproj, and D12/D13 have their own suites, so make_subset.py
+    deliberately leaves all three out. Comparing against the whole bank made
+    every one of those dimensions report a phantom "N questions missing"
+    (measured: 31 missing after D13 landed, all of them D13 rows that were
+    never supposed to be in a subset).
+    """
     issues = []
     full_ids = set()
     for path in glob.glob(os.path.join(root, "datasets", "full", "*.jsonl")):
+        # only dimensions the subset builder actually samples
+        dim = os.path.basename(path).split("_")[0]
+        if dim not in SUBSET_DIMS:
+            continue
         for line in open(path, encoding="utf-8"):
             if line.strip():
                 full_ids.add(json.loads(line)["id"])

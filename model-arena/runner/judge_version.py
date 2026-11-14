@@ -47,9 +47,17 @@ CORE_FILES = [
 
 # Files reachable by one suite only. Editing one of these must not invalidate
 # results from a suite that cannot call it.
+#
+# d13_prose.py goes here rather than CORE_FILES on purpose: it is only reachable
+# from suite_writing (D13), and D13 carries no weight in the index. Putting it in
+# CORE_FILES would invalidate every D2..D12 result every time the prose word lists
+# are tuned - which happens far more often than the core judges change.
+# Third time this blind spot appeared (checkers.py, compression.py, now this):
+# a judge file that is not hashed is a judge change that ships unflagged.
 SUITE_FILES = {
     "lcb": ["lcb_judge.py"],
     "public": ["public_judge.py", "ifeval_judge.py", "lcb_judge.py", "aliases.py"],
+    "writing": ["d13_prose.py"],
 }
 
 

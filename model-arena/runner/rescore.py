@@ -134,6 +134,15 @@ def rescore_one(path):
         elif rd == "D11":
             import vision as vismod
             v = vismod.judge_vision(q, r.get("response") or "")
+        elif rd == "D13":
+            # D13 是纯规则判分、题目全在 D13_full.jsonl 的题库里，所以可以
+            # 完整离线重算 —— 改词表/阈值后不必重跑模型。这也正是当初把
+            # D13 设计成"规则判分 + jsonl 题库"而不是 D12 那种"从 seed 生成"
+            # 的现实好处：D12 因为生成器变过，同 seed 已不可复现，只能重跑。
+            import d13_prose as _d13
+            _v = _d13.judge_prose(q, r.get("response") or "")
+            v = {"correct": bool(_v.get("correct")),
+                 "reason": str(_v.get("reason", ""))[:60]}
         elif rd == "D12":
             # D12 CANNOT be re-judged offline, and pretending otherwise is worse
             # than refusing. The scenario is built from a seed, but build_scenario
@@ -177,6 +186,15 @@ def rescore_one(path):
             changed.append({"id": r.get("id"), "from": old, "to": nc,
                             "reason": str(v.get("reason"))[:60]})
         r["correct"] = nc
+        # D13 的判决依赖 metrics（distinct_2/ttr/感官/chat 计数…）。
+        # 只改 correct 不改 metrics，重算后"通过率是新的、分项中位数是旧的"，
+        # 比不重算更误导 —— 那正是本工具存在的理由（防止一半新一半旧）。
+        if rd == "D13":
+            _m = _d13.measure(r.get("response") or "")
+            r["metrics"] = _m
+            r["score"] = _v.get("score")
+            r["detail"] = _v.get("detail")
+            r["no_han"] = bool(_v.get("no_han"))
         r["rescored"] = True
     valid = [r for r in recs if not r.get("error")]
     cor = sum(1 for r in valid if r.get("correct"))
@@ -202,6 +220,18 @@ def rescore_one(path):
     # is exactly the silent failure this tool exists to prevent.
     s["rescore_note"] = ("用当前判分器重算 %d 条记录,翻转 %d 题" % (touched, len(changed))
                          if touched else "没有一条记录可重算(缺少对应题库行)")
+    # 重算后必须盖当前判分器指纹。不盖的话，_rescored 文件读起来和原文件一样新，
+    # 而榜单无法判断它是哪个判分器版本产出的 —— 上一轮 47 个格子全过期就是这么来的
+    # （重算了但没打指纹，榜单只能当它们仍是旧版本）。
+    try:
+        import judge_version as _JV
+        _suite = {"D13": "writing"}.get(dim)
+        s["judge_version"] = (_JV.judge_version(_suite) if _suite
+                              else _JV.judge_version())
+        s["rescored_at"] = __import__("datetime").datetime.now().strftime(
+            "%Y-%m-%d %H:%M:%S")
+    except Exception:
+        pass
     if not touched:
         # 一条都没重算就别生成文件。旧行为照样写 _rescored.json,
         # 于是"看起来已用当前判分器验证过"的文件其实是旧判决的副本。
