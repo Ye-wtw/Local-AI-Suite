@@ -548,6 +548,35 @@ def test_d13_prose():
     check("D13 审计对真实题库无告警",
           _g.audit_coverage(_g.build()) == [], _g.audit_coverage(_g.build())[:2])
 
+    # --- 思考泄漏：把内部盘算当正文交了 ---
+    # 实测（Bonsai2-27B via ninfer，长篇 6 题）：5 题输出以
+    # 「我们需要回答用户：写一篇2500-4000字中文短篇小说……」开头，
+    # 混进形式指标后 ttr 掉到 0.09-0.15。判分器"判错"是对的，
+    # 但原因不是文笔差，是**它没有交付成品** —— 必须分开统计。
+    think = "我们需要回答用户：写一篇2500字小说。现在需构思并创作。必须确保至少50个句子。"
+    check("D13 能识别思考泄漏", D._looks_like_thinking(think) is True, None)
+    v = D.judge_prose({"expect": {"checks": []}}, think)
+    check("D13 思考泄漏标记 no_delivery", v.get("no_delivery") is True, v.get("reason"))
+    check("D13 思考泄漏不算 no_han", not v.get("no_han"), v.get("no_han"))
+
+    # 精确度：正常创作不能误判
+    for name, txt in [
+        ("自然开篇", "这篇文章写一座城市的四季。春天来了，河边柳树发芽。"),
+        ("第一人称", "我想写写这座城市。四季轮转，河边柳树年年发芽。"),
+        ("引用任务", "用户要求写四季。我打算从一个清晨写起。"),
+    ]:
+        check("D13 不误判「%s」" % name, D._looks_like_thinking(txt) is False, txt[:20])
+
+    # 汇总要单列，不能混进分母
+    s2 = D.summarize([
+        {"id": "a", "subcat": "prose_long", "correct": True, "score": 100,
+         "metrics": {"distinct_2": 0.8, "ttr": 0.3}},
+        {"id": "b", "subcat": "prose_long", "correct": False, "score": 0,
+         "no_delivery": True, "metrics": {}},
+    ], sampling={})
+    check("D13 汇总单列思考泄漏", s2.get("n_no_delivery") == 1, s2.get("n_no_delivery"))
+    check("D13 汇总分母排除思考泄漏", s2.get("n_valid") == 1, s2.get("n_valid"))
+
     # --- chat 语言感：反 AI 腔 ---
     # 词表来自实测：扫本机 results/ 611 个文件 34320 条回答，
     # 「以下是」541 次、「首先」120 次、「当然可以」44 次。

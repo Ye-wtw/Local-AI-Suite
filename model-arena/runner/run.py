@@ -346,8 +346,31 @@ def suite_writing(ep, limit=None, verbose=True):
     records = []
     t0 = time.perf_counter()
     for i, r in enumerate(rows, 1):
+        # 长篇按题目字数上限算 deadline 与 max_tokens，而不是用默认值。
+        #
+        # 实测（Bonsai2-27B via ninfer，25 tok/s）：写一道 2000-4000 字的长篇
+        # 需要 **327 秒、8192 tokens**。默认 deadline 300s 会让第一次尝试就超时，
+        # 重试再撞一次的额外开销，整题被判 timeout —— 那不是模型不会写，
+        # 是预算不够。这与 D7 多针题踩的是同一个坑。
+        #
+        # 汉字→token 按 1:1.6 估（中文约 0.6 token/字），再留 1.5 倍余量。
+        han_max = None
+        for c in (r.get("expect") or {}).get("checks") or []:
+            if c.get("type") == "han_count" and isinstance(c.get("value"), list):
+                han_max = c["value"][1]
+        # 速率别写死：27B-ternary 实测 25 tok/s，Qwen3.5-9B 约 50 tok/s，
+        # 拿 27B 的速率去给 9B 算预算会把时间白白放大一倍。
+        # 端点可以声明 tps，没声明就用保守的 20（宁可多等，不要假超时）。
+        tps = getattr(ep, "tps", None) or (ep.extra or {}).get("tps") if hasattr(ep, "extra") else None
+        tps = float(tps) if tps else 20.0
+        kw = {}
+        if han_max:
+            need_tokens = int(han_max * 1.6 * 1.5)
+            kw["max_tokens"] = max(4096, need_tokens)
+            # 2 倍安全系数：生成速率会随上下文变长而下降
+            kw["deadline_s"] = max(600, int(need_tokens / tps * 2))
         try:
-            res = ep.chat([{"role": "user", "content": r["user"]}])
+            res = ep.chat([{"role": "user", "content": r["user"]}], **kw)
             v = d13.judge_prose(r, res["text"])
             m = d13.measure(res["text"])
             rec = {"id": r["id"], "subcat": r.get("subcat"), "length": r.get("length"),
@@ -355,7 +378,8 @@ def suite_writing(ep, limit=None, verbose=True):
                    "latency_s": res["latency_s"],
                    "correct": v["correct"], "score": v["score"],
                    "reason": v["reason"], "detail": v["detail"],
-                   "no_han": bool(v.get("no_han")), "metrics": m}
+                   "no_han": bool(v.get("no_han")),
+                   "no_delivery": bool(v.get("no_delivery")), "metrics": m}
         except EndpointError as e:
             rec = mark_error({"id": r["id"], "subcat": r.get("subcat"),
                               "length": r.get("length"), "response": "",

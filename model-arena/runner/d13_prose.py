@@ -271,6 +271,31 @@ def measure(text):
     }
 
 
+# 思考泄漏的典型开头。只认**开头**，不全文扫描 ——
+# 一篇文章正文里出现「我们需要回答用户」是极小概率，
+# 但如果全文扫描，正常文章引述任务要求时会被误杀。
+# 只用**不会被正常创作用到**的说法。刻意去掉了「用户要求」「先构思」
+# 这类可能出现在第一人称叙事里的短语 —— 实测「用户要求写四季。我打算
+# 从一个清晨写起。」这种自然开篇会被误伤，而它是一篇合格的文章。
+#
+# 保留的都是自我盘算的口吻，正常散文/小说几乎不会用：
+THINK_MARKERS = [
+    "我们需要回答用户", "需要回答用户", "我们需要写",
+    "现在需构思", "需要构思并创作", "必须确保至少",
+    "需要确保字数", "字数估算", "我们来数", "统计句",
+    # 「用户要求用中文写一段…」这种**把任务复述一遍再开始盘算**的形态。
+    # 单独用「用户要求」会误伤第一人称叙事（「用户要求写四季。我打算…」），
+    # 所以要求它后面紧跟创作指令词，这才是复述任务的语气。
+    "用户要求用中文写", "用户要求写一篇", "用户要求用中文",
+]
+
+
+def _looks_like_thinking(text):
+    """开头 200 字里出现自我盘算的痕迹 = 把思考当正文交了。"""
+    head = (text or "")[:200]
+    return any(m in head for m in THINK_MARKERS)
+
+
 def _opening_repeat(text):
     """连续句子的前两字相同次数。模板化/复读会高。"""
     sents = [han_only(s) for s in split_sentences(text)]
@@ -390,6 +415,20 @@ def judge_prose(entry, response):
         return {"correct": False, "score": 0.0,
                 "reason": "no Chinese characters in reply (not judged as poor writing)",
                 "detail": [], "no_han": True}
+    # 模型把**思考过程**当正文输出了 —— 这不是"写得差"，是没有创作。
+    #
+    # 实测（Bonsai2-27B via ninfer，长篇 6 题）：5 题输出以
+    #   「我们需要回答用户：写一篇2500-4000字中文短篇小说……」
+    #   「现在需构思并创作。必须确保至少50个句子」
+    #   「150*18=2700。OK。」「第12句 =>12」
+    # 开头，是自我盘算而不是文章。混进形式指标后 ttr 掉到 0.09-0.15、
+    # distinct_2 掉到 0.36-0.42 —— 判分器"判错"是对的，但原因不是文笔，
+    # 是**它根本没有交付成品**。和 AGENTS.md 铁律 5「信息不足 vs 能力下降」
+    # 同一个道理：要把原因分开，不然这个维度会冤枉模型也误导读者。
+    if _looks_like_thinking(txt):
+        return {"correct": False, "score": 0.0,
+                "reason": "reply is the model's internal planning, not a finished piece",
+                "detail": [], "no_delivery": True}
     m = measure(txt)
     detail = []
     passed = 0
@@ -427,7 +466,9 @@ def summarize(records, sampling=None):
     # 三类要分开：连接失败（没机会作答）/ 没写汉字（同样没作答）/ 有效作答
     errored = [r for r in records if r.get("error")]
     no_han = [r for r in records if not r.get("error") and r.get("no_han")]
-    valid = [r for r in records if not r.get("error") and not r.get("no_han")]
+    no_deliv = [r for r in records if not r.get("error") and r.get("no_delivery")]
+    valid = [r for r in records if not r.get("error")
+             and not r.get("no_han") and not r.get("no_delivery")]
     correct = sum(1 for r in valid if r.get("correct"))
     acc = (correct / float(len(valid))) if valid else 0.0
 
@@ -471,6 +512,8 @@ def summarize(records, sampling=None):
         "n_valid": len(valid), "n_errors": len(errored),
         "n_no_han": len(no_han),
         "no_han_ids": [r.get("id") for r in no_han],
+        "n_no_delivery": len(no_deliv),
+        "no_delivery_ids": [r.get("id") for r in no_deliv],
         "accuracy": acc,
         "accuracy_with_errors": (correct / float(len(records))) if records else 0.0,
         "mean_score": round(sum(r.get("score") or 0 for r in valid) / float(len(valid)), 1) if valid else 0.0,
