@@ -122,10 +122,16 @@
     "top_p": 0.9,
     "tps": 25.0
    },
-   "_note": "Bonsai2-27B 三元量化 PTQ1（.ninfer 格式）。必须用 01_models/prism-ml/Bonsai2-8G-bundle/engine/ninfer-serve-120a.exe 启动，llama-server 会报 'tensor output.weight has invalid ggml type'。启动器见同目录 start.bat，需 6 个 NINFER_* 环境变量。 实测生成 25 tok/s（写 4000 字约 327 秒）。",
+   "_note": "Bonsai2-27B 三元量化 PTQ1（.ninfer 格式）。必须用 01_models/prism-ml/Bonsai2-8G-bundle/engine/ninfer-serve-120a.exe 启动，llama-server 会报 'tensor output.weight has invalid ggml type'。启动器见同目录 start.bat，需 6 个 NINFER_* 环境变量。⚠ 创作类评测必须加 --no-thinking：默认思考模式下模型会把内部盘算当正文输出（实测同题 8469 字自我盘算、判 0 分；加开关后 3562 字成文、判 100 分、快 4 倍）。",
    "engine": "ninfer",
    "_launcher": "01_models/prism-ml/Bonsai2-8G-bundle/start.bat",
-   "_format": ".ninfer (ternary PTQ1)"
+   "_format": ".ninfer (ternary PTQ1)",
+   "_launcher_args": [
+    "--no-thinking",
+    "--kv-dtype k8v4",
+    "--host-kv-mib 12288"
+   ],
+   "_thinking": "off (--no-thinking) — 创作评测必须关闭"
   },
   "kv17": {
    "base_url": "http://127.0.0.1:18260",
