@@ -565,6 +565,30 @@ def test_d13_prose():
     check("D13 映射到 writing suite 版本",
           'SUITE_JV.get("writing")' in _src, None)
 
+    # --- 题库也算版本的一部分 ---
+    # 2026-11-19 的盲点：D13 从 31 题扩到 50 题，判分器一行没改，
+    # judge_version("writing") 前后是同一个哈希 —— 版本机制看不见题库变化，
+    # 于是「31 题成绩」和「50 题成绩」被当成可比。分母不同、覆盖不同，不可比。
+    import judge_version as _JV
+    check("题库登记在 SUITE_DATASETS", "writing" in _JV.SUITE_DATASETS, None)
+    check("题库不进 CORE（改 D13 不能废掉 D2-D12）",
+          not any("D13" in f for f in _JV.CORE_FILES), None)
+
+    import io as _io2, os as _os2
+    _dp = _os2.path.join(ROOT, "datasets", "full", "D13_full.jsonl")
+    _before = _JV.judge_version("writing")
+    _core_before = _JV.judge_version()
+    _orig = _io2.open(_dp, encoding="utf-8").read()
+    try:
+        _io2.open(_dp, "a", encoding="utf-8").write(chr(10))
+        _after = _JV.judge_version("writing")
+        _core_after = _JV.judge_version()
+    finally:
+        _io2.open(_dp, "w", encoding="utf-8").write(_orig)
+    check("改题库 -> writing 版本变化", _before != _after, "%s -> %s" % (_before, _after))
+    check("改题库 -> core 版本不变", _core_before == _core_after, None)
+    check("题库还原后版本恢复", _JV.judge_version("writing") == _before, None)
+
     # --- 套话词表不能把正常中文算成套话 ---
     # 2026-11-19 用 140 条真实输出逐词核对，删掉三个词：
     #   "深深" 命中 6 次全是正常用法（深深的皱纹 / 深深的疲惫 / 深深的黑），

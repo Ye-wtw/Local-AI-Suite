@@ -60,6 +60,21 @@ SUITE_FILES = {
     "writing": ["d13_prose.py"],
 }
 
+# 题库文件：**改题也是改版本**。
+#
+# 2026-11-19 实测的盲点：D13 的题从 31 道扩到 50 道（chat 7→20、长篇 6→12），
+# 判分器一行没改，judge_version("writing") 前后都是同一个哈希。
+# 于是「31 题的成绩」和「50 题的成绩」在版本机制看来完全可比 —— 但它们不可比：
+# 分母不同、覆盖的场景不同，直接并列就是把两把不同的尺子画进同一张表。
+#
+# 只登记在 suite 级、不进 CORE_FILES：题库是按维度建的，改 D13 的题不该让
+# D2..D12 的成绩失效。这与上面 SUITE_FILES 的设计意图一致 ——
+# 一个动不动就报警的版本号比没有更糟。
+SUITE_DATASETS = {
+    # 相对 runner/ 的路径
+    "writing": ["../datasets/full/D13_full.jsonl"],
+}
+
 
 def _hash(names):
     h = hashlib.sha256()
@@ -80,7 +95,9 @@ def judge_version(suite=None):
     judge leaves the D2..D10 version untouched - which is the point.
     """
     if suite in SUITE_FILES:
-        return _hash(CORE_FILES + SUITE_FILES[suite])
+        # 题库也算版本的一部分：改题和改判分器一样会让历史成绩不可比。
+        files = CORE_FILES + SUITE_FILES[suite] + SUITE_DATASETS.get(suite, [])
+        return _hash(files)
     return _hash(CORE_FILES)
 
 
