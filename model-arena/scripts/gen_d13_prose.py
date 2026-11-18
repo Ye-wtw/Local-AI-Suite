@@ -474,6 +474,55 @@ def build():
                             {"type": "not_contains", "op": "not_contains",
                              "value": ["总之", "首先", "作为一个AI"],
                              "label": "禁用词"}])),
+
+        # ---- 补 6 题：原 6 题全挤在 2000-4000，缺两头 ----
+        #
+        # 缺口一：**1500-2500 过渡区间**。实测 27B 写 2000-4000 时会写到 1778
+        #        或 4926 —— 说明它对这个量级没有准确的尺度感。给一个更窄的
+        #        区间才能看出是「尺度感差」还是「只会写某个固定长度」。
+        # 缺口二：**4000+ 压测**。长文崩坏通常发生在某个长度之后，
+        #        原 6 题都没超过 4000，测不出拐点在哪。
+        ("D13_prose_long_0003", "prose_long",
+         "写一篇 1500-2200 字的中文散文，主题是「搬家那天」。要求："
+         "①至少覆盖 3 类感官；②至少 25 个句子；"
+         "③不许用「总之」「首先」「这让我」「不得不说」等套话。",
+         core_checks(1500, 2200, 3, min_punct=None, min_cv=None, min_sent=25)),
+        ("D13_narrative_long_0003", "narrative_long",
+         "写一篇 1600-2400 字的中文短篇小说，主题是「邻居家的狗」。要求："
+         "①至少两次转折；②至少 2 类感官；③句长有变化；"
+         "④至少 28 个句子；⑤不许用套话总结。",
+         core_checks(1600, 2400, 2, min_punct=None, min_cv=None, min_sent=28,
+                     min_turns=2)),
+        ("D13_prose_long_0004", "prose_long",
+         "写一篇 4200-6000 字的中文散文，主题是「一条河的一生」。要求："
+         "①至少覆盖 4 类感官；②至少 90 个句子；"
+         "③不许用「总之」「首先」「这让我」「不得不说」等套话；"
+         "④不许用「以上就是」收尾。",
+         core_checks(4200, 6000, 4, min_punct=None, min_cv=None, min_sent=90)),
+        ("D13_narrative_long_0004", "narrative_long",
+         "写一篇 4000-5500 字的中文短篇小说，主题是「旧照片里的人」。要求："
+         "①至少三次转折；②至少 3 类感官；③句长有变化；"
+         "④至少 80 个句子；⑤不许用套话总结。",
+         core_checks(4000, 5500, 3, min_punct=None, min_cv=None, min_sent=80,
+                     min_turns=3)),
+        ("D13_dialogue_long_0002", "dialogue_long",
+         "写一段 2500-4000 字的中文长对话场景：「手术室外的四小时」。要求："
+         "①对话（引号内）占比至少 25%；②至少 2 类感官；"
+         "③至少 40 个句子；④不许用套话。",
+         core_checks(2500, 4000, 2, min_punct=None, min_cv=None, min_sent=40,
+                     extra=[{"type": "dialogue_ratio", "op": "gte", "value": 0.25,
+                             "label": "对话占比"}])),
+        ("D13_constraint_long_0002", "constraint_long",
+         "写一篇 3000-4500 字的中文叙事，必须：①出现「未寄出的信」这个物件；"
+         "②至少 3 类感官；③至少 60 个句子；"
+         "④不得出现「总之」「首先」「作为一个AI」；"
+         "⑤结尾不能是总结段。",
+         core_checks(3000, 4500, 3, min_punct=None, min_cv=None, min_sent=60,
+                     extra=[{"type": "contains", "op": "contains",
+                             "value": ["未寄出"], "label": "含指定物件"},
+                            {"type": "not_contains", "op": "not_contains",
+                             "value": ["总之", "首先", "作为一个AI"],
+                             "label": "禁用词"}])),
     ]
     for qid, sub, user, cs in long_specs:
         rows.append(q(qid, sub, user, cs,

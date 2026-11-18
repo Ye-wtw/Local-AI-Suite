@@ -565,6 +565,32 @@ def test_d13_prose():
     check("D13 映射到 writing suite 版本",
           'SUITE_JV.get("writing")' in _src, None)
 
+    # --- 套话词表不能把正常中文算成套话 ---
+    # 2026-11-19 用 140 条真实输出逐词核对，删掉三个词：
+    #   "深深" 命中 6 次全是正常用法（深深的皱纹 / 深深的疲惫 / 深深的黑），
+    #          却是一票否决 —— 2100 字和 3750 字的好文章仅因它被判废。
+    #   "不由得" / "可以说" 是正常书面语，不是 AI 腔。
+    check("D13 套话表不含「深深」", "深深" not in D.CLICHE, None)
+    check("D13 套话表不含「不由得」", "不由得" not in D.CLICHE, None)
+    check("D13 套话表不含「可以说」", "可以说" not in D.CLICHE, None)
+    check("D13 套话表仍含真 AI 腔",
+          "作为一个AI" in D.CLICHE and "总之" in D.CLICHE, None)
+    check("D13 正常含「深深」的散文不因套话判错",
+          D._check_ok({"type": "cliche_hits", "op": "lte", "value": 0},
+                      {"cliche_hits": []})[0] is True, None)
+
+    # --- 复述题面里的禁用词不算套话 ---
+    # 实测：题面写「④不许用『总之』『首先』这类套话」，模型把这句话连引号抄进
+    # 正文开头，cliche 命中 21 次 —— 命中的是题面引用的词，不是它自己用了套话。
+    _prompt = "写一篇散文。④不许用「总之」「首先」这类套话。"
+    _body = "「总之」「首先」这类词我都避开了。窗外下着雨，屋檐在滴水。"
+    _clean = D._strip_prompt_mentions(_body, _prompt)
+    check("D13 复述题面的禁用词被剔除", "「总之」" not in _clean, _clean[:40])
+    check("D13 剔除后正文仍在", "窗外下着雨" in _clean, None)
+    # 但裸用仍然算命中
+    check("D13 正文裸用「总之」仍算套话",
+          "总之" in D._strip_prompt_mentions("总之，这篇文章讲完了。", _prompt), None)
+
     # --- 英文思考泄漏要被识别（llama-server 没有 --no-thinking）---
     # 实测 Qwen3.5-9B 在 chat 题上交出完整的英文思考过程：
     #   "Thinking Process:\n\n1.  **Analyze the Request:**\n    *   User asks: ..."
