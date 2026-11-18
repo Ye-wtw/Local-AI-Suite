@@ -67,7 +67,7 @@ MIN_PUNCT_FLOOR = 3
 
 def core_checks(min_han, max_han, min_sensory, min_punct=MIN_PUNCT_FLOOR,
                 min_cv=0.25, min_sent=None, max_sent=None,
-                min_turns=0, extra=None):
+                min_turns=0, extra=None, subcat_hint=""):
     """所有题共用的一组形式判据。每个参数都对应题面里写过的一句要求。
 
     min_punct=None 表示**不判标点多样性**（长篇用）—— 理由见 MIN_PUNCT_FLOOR 注释。
@@ -100,14 +100,24 @@ def core_checks(min_han, max_han, min_sensory, min_punct=MIN_PUNCT_FLOOR,
     #
     # 阈值 0.5 来自实测（73 条真实输出）：
     #   正常文章（已通过其它判据的 32 条）中位 0.083，**最大 0.176**
-    #   全样本 P95 = 0.556，P100 = 0.809（思考泄漏的重复文本）
-    # 取 0.5 给正常文章留 3 倍余量，同时拦住 0.81 那类。
+    #   全样本 P95 = 0.556，P100 = 0.809
+    # 取 0.5 给正常文章留 3 倍余量。
     #
-    # 这是「行文逻辑」里唯一通过验证的指标。另外两个候选被淘汰：
-    #   topic_keep   方向反了（正常散文 0.000，车轱辘话 1.000）
-    #   connect_per_1k 正常文章跨度 0-21.7，定不出可信阈值
-    cs.append({"type": "far_repeat", "op": "lte", "value": 0.5,
-               "label": "无远距离重复"})
+    # == 只用于创作题，不用于 chat ==
+    #
+    # 跨模型验证时（9B 16 条 / 27B 31 条，中位数都是 0.066-0.083）发现 4 条超阈，
+    # 逐条看了：
+    #   dialogue_long_0001 0.760  末尾几百行「你妈。」      -> 真车轱辘话，该拦
+    #   chat_0001          0.809  「## 一、先备份 / 1. 打开微信 -> 我 -> 设置」-> 误判
+    #   chat_0001          0.652  iOS/安卓两套步骤            -> 误判
+    #   chat_0002          0.556  「抱抱你」+ 反复安慰        -> 误判
+    #
+    # 原因：**分步骤说明和情绪安慰天生重复关键词**（微信/设置/删除、"没关系/我陪着你"），
+    # 这不是车轱辘话。这是 chat 类文本的合法形态。
+    # 所以 far_repeat 只挂在创作题上 —— 创作要求"不重复用词"，对话不要求。
+    if subcat_hint not in ("chat",):
+        cs.append({"type": "far_repeat", "op": "lte", "value": 0.5,
+                   "label": "无远距离重复"})
     if min_punct is not None:
         cs.append({"type": "punct_kinds", "op": "gte", "value": min_punct,
                    "label": "标点不单调"})

@@ -548,6 +548,25 @@ def test_d13_prose():
     check("D13 审计对真实题库无告警",
           _g.audit_coverage(_g.build()) == [], _g.audit_coverage(_g.build())[:2])
 
+    # --- far_repeat 只用于创作题，不用于 chat ---
+    # 跨模型验证时发现 4 条超阈，逐条看：1 条是真车轱辘话（几百行「你妈。」），
+    # 3 条是误判 —— 微信分步骤说明、iOS/安卓两套步骤、反复安慰。
+    # **分步骤说明和情绪安慰天生重复关键词**，这不是车轱辘话。
+    import importlib.util as _iu2
+    _sp = _iu2.spec_from_file_location(
+        "gen_d13b", os.path.join(ROOT, "scripts", "gen_d13_prose.py"))
+    _g2 = _iu2.module_from_spec(_sp)
+    _sp.loader.exec_module(_g2)
+    _rows = _g2.build()
+    _chat = [r for r in _rows if r["subcat"] == "chat"]
+    _crea = [r for r in _rows if r["subcat"] != "chat"]
+    check("D13 chat 题不含 far_repeat",
+          all(not any(c["type"] == "far_repeat" for c in r["expect"]["checks"])
+              for r in _chat), len(_chat))
+    check("D13 创作题含 far_repeat",
+          all(any(c["type"] == "far_repeat" for c in r["expect"]["checks"])
+              for r in _crea), len(_crea))
+
     # --- 行文逻辑：只有 far_repeat 通过验证 ---
     # 第一轮设计了 5 个指标，实测 4 个没有区分度（回指率恒为 1、首尾恒为 0）。
     # 第二轮 3 个候选里 topic_keep 方向是反的（正常散文 0.000 / 车轱辘话 1.000），
