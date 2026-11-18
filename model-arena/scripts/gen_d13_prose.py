@@ -77,7 +77,21 @@ def core_checks(min_han, max_han, min_sensory, min_punct=MIN_PUNCT_FLOOR,
         {"type": "han_count", "op": "in_range", "value": [min_han, max_han], "label": "字数区间"},
         {"type": "sensory_cats", "op": "coverage", "value": min_sensory, "label": "感官覆盖"},
         {"type": "distinct_2", "op": "gte", "value": 0.55, "label": "不复读(2-gram)"},
-        {"type": "ttr", "op": "in_range", "value": [0.20, 0.65], "label": "词汇丰富度"},
+        # ttr 上限**随字数下限走**，不能用一个固定值。
+        #
+        # 实测 73 条真实输出按长度分桶（2026-11-18）：
+        #   300-450 字  中位 0.606  最大 0.725
+        #   450-600 字  中位 0.536  最大 0.644
+        #   600-800 字  中位 0.513  最大 0.549
+        #   800+   字  中位 0.254  最大 0.496
+        # 短文本 ttr 天然更高（同字数里可用字有限，反而不容易重复）。原来是固定
+        # 上限 0.65，导致 287/315/334 字的合格片段全被判「词汇丰富度过高」——
+        # 7/73（10%）被误杀，而且卡在边界上（0.672 对 0.65）。
+        #
+        # 规则：下限 300 字给 0.75，600 字给 0.65，再长回到 0.65。
+        {"type": "ttr", "op": "in_range",
+         "value": [0.20, 0.75 if min_han < 450 else 0.65],
+         "label": "词汇丰富度"},
     ]
     if min_cv is not None:
         cs.append({"type": "cv_sentence_len", "op": "gte", "value": min_cv,

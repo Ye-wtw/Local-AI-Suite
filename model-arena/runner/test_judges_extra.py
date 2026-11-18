@@ -548,6 +548,29 @@ def test_d13_prose():
     check("D13 审计对真实题库无告警",
           _g.audit_coverage(_g.build()) == [], _g.audit_coverage(_g.build())[:2])
 
+    # --- ttr 上限必须随文本长度走 ---
+    # 实测 73 条真实输出：300-450 字中位 0.606 / 最大 0.725，
+    # 800+ 字中位 0.254 / 最大 0.496。固定上限 0.65 会误杀 10% 的短篇。
+    bank_txt = "那间屋子很小，桌上有一盏旧灯，灯罩上积着薄灰。窗子朝着一条安静的街。"
+    short_q = {"expect": {"checks": [
+        {"type": "han_count", "op": "in_range", "value": [300, 450]},
+        {"type": "ttr", "op": "in_range", "value": [0.20, 0.75]},
+    ]}}
+    long_q = {"expect": {"checks": [
+        {"type": "han_count", "op": "in_range", "value": [2000, 4000]},
+        {"type": "ttr", "op": "in_range", "value": [0.20, 0.65]},
+    ]}}
+    # 一段 ttr 偏高的短文（真实模型 300-450 字常见 0.6-0.72）
+    high_ttr = "他走进屋子。桌上放着一盏灯。灯罩灰扑扑的。窗外有条街。街上没什么人。" * 6
+    m_hi = D.measure(high_ttr)
+    if 0.65 < (m_hi["ttr"] or 0) <= 0.75:
+        v = D.judge_prose(short_q, high_ttr)
+        check("D13 短篇 ttr 0.65-0.75 应判过（旧上限会误杀）",
+              all(dd["ok"] for dd in v["detail"] if dd["type"] == "ttr"),
+              m_hi["ttr"])
+    check("D13 长篇 ttr 上限仍是 0.65",
+          long_q["expect"]["checks"][1]["value"] == [0.20, 0.65], None)
+
     # --- 思考泄漏：把内部盘算当正文交了 ---
     # 实测（Bonsai2-27B via ninfer，长篇 6 题）：5 题输出以
     # 「我们需要回答用户：写一篇2500-4000字中文短篇小说……」开头，
