@@ -241,6 +241,87 @@ def _count_bullets(text):
     return n
 
 
+
+# ---------------- 行文逻辑（话语层结构）----------------
+#
+# 文笔好不好无法规则判定，但**行文逻辑**可以：衔接、延续、重复都是结构，
+# 规则看得见。这一组指标不是在评「写得好」，是在测「读起来是不是一篇连贯的东西」。
+#
+# 设计过程（两轮，第一轮的教训写在下面）：
+# 第一轮我设计了 5 个指标，拿 73 条真实输出一测，**4 个没有区分度**：
+#   anaphora 回指率   中位 1.000（范围 0.83-1.0）—— 判据太松，几乎恒为合格
+#   head_tail 首尾呼应 中位 0.000（最大 0.069）—— 中文散文本来就不靠重复呼应
+#   adj_overlap 相邻重叠 中位 0.000 —— Jaccard 在短句上极易归零
+#   opens_with_connect 恒为 0 —— 正常文章不会以「但是」开头
+# 淘汰它们，改用下面这组。第二轮全部有真实跨度（见各行注释）。
+
+LOGIC_CONNECT = {
+    "转折": ["却", "但", "然而", "不过", "可是", "反而", "偏偏"],
+    "因果": ["因为", "所以", "因此", "由于", "于是", "以致", "从而", "既然"],
+    "递进": ["而且", "并且", "甚至", "况且", "何况", "不仅"],
+    "时序": ["然后", "接着", "后来", "随后", "终于", "起初", "最后", "等到"],
+    "条件": ["如果", "要是", "只要", "除非", "假使"],
+    "让步": ["虽然", "尽管", "即使", "哪怕"],
+}
+
+
+def _bigrams(s):
+    h = han_only(s)
+    return set(h[i:i + 2] for i in range(len(h) - 1))
+
+
+def logic_metrics(text):
+    """话语层结构指标。返回 dict；文本太短（<5 句）返回 None。
+
+    == 只有一个指标通过了验证：far_repeat ==
+
+    合成对照（2026-11-18）：
+      正常散文      far_repeat=0.000   topic_keep=0.000   connect/千字=21.6
+      车轱辘话      far_repeat=1.000   topic_keep=1.000   connect/千字=0.0
+      转折堆砌      far_repeat=0.000   topic_keep=0.000   connect/千字=179.5
+
+    真实输出：far_repeat 0.023（连贯散文）到 0.810（思考泄漏的重复文本），跨度 35 倍。
+
+    == 被淘汰的两个，以及为什么 ==
+
+    topic_keep（相邻句共享二字词的比例）**方向是反的**：
+    正常散文 0.000，车轱辘话 1.000。原因是散文靠**意象**串联而不靠词汇复现，
+    而复读机一直在用同一批词，反而「延续」满分。它测的是「原地打转」不是「连贯」。
+
+    connect_per_1k（连接词密度）能把极端分开（转折堆砌 179.5 vs 正常 21.6），
+    但正常文章自身跨度 0-21.67，定不出一个可信阈值 —— 又一次「猜阈值」的诱惑，
+    这次不猜。
+
+    结论：行文逻辑里真正可规则量化的很窄。far_repeat 站得住，因为它测的是
+    **结构性重复**（隔三句以上仍在复用同一批二字词），这是复读机的硬特征。
+    """
+    txt = text or ""
+    sents = [s for s in split_sentences(txt) if han_count(s) > 0]
+    if len(sents) < 5:
+        return None
+    h = han_count(txt)
+    total = sum(txt.count(w) for ws in LOGIC_CONNECT.values() for w in ws)
+    # 相邻句共享至少一个二字词 = 话题接得上
+    keep = 0
+    for a, b in zip(sents, sents[1:]):
+        A, B = _bigrams(a), _bigrams(b)
+        if A and B and (A & B):
+            keep += 1
+    # 隔 3 句以上仍共享词 = 远距离重复（复读机）
+    bags = [_bigrams(s) for s in sents]
+    far, tot = 0, 0
+    for i in range(len(bags)):
+        for j in range(max(0, i - 3), i):
+            tot += 1
+            if bags[i] and bags[j] and (bags[i] & bags[j]):
+                far += 1
+    # 只输出经过验证的指标。没有验证过的不要放进判据 ——
+    # 项目铁律：判分器比模型更容易出错，而一个没验证的指标就是一个假信号。
+    return {
+        "far_repeat": round(far / float(tot), 4) if tot else 0.0,
+    }
+
+
 def measure(text):
     """一次算出全部指标，供 judge 与汇总共用。"""
     txt = text or ""
@@ -268,6 +349,7 @@ def measure(text):
         "contains": txt,          # 供 contains/not_contains 用原始文本匹配
         # chat 语言感：只有在题目是 chat 类时才会被 check 用到
         **chat_tone(txt),
+        **({} if logic_metrics(txt) is None else logic_metrics(txt)),
     }
 
 
@@ -348,6 +430,16 @@ def _check_ok(chk, m):
         if op == "lte":
             return g <= v, g, v
         return g >= v, g, v
+    if t in ("connect_per_1k", "connect_kinds", "topic_keep", "far_repeat"):
+        # 行文逻辑指标。far_repeat 用 lte（越少越好），其余用 gte。
+        g = float(got or 0.0)
+        v = float(val)
+        if op == "in_range":
+            lo, hi = float(val[0]), float(val[1])
+            return lo <= g <= hi, round(g, 4), [lo, hi]
+        if op == "lte":
+            return g <= v, round(g, 4), v
+        return g >= v, round(g, 4), v
     if t in ("chat_opener", "chat_sycophancy", "chat_preachy", "chat_bullets",
              "chat_bold", "chat_para"):
         # chat 语言感一律用**阈值**判，不用一票否决。

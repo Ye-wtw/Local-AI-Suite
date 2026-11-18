@@ -96,6 +96,18 @@ def core_checks(min_han, max_han, min_sensory, min_punct=MIN_PUNCT_FLOOR,
     if min_cv is not None:
         cs.append({"type": "cv_sentence_len", "op": "gte", "value": min_cv,
                    "label": "句长有变化"})
+    # 行文逻辑：隔三句以上仍复用同一批二字词 = 车轱辘话。
+    #
+    # 阈值 0.5 来自实测（73 条真实输出）：
+    #   正常文章（已通过其它判据的 32 条）中位 0.083，**最大 0.176**
+    #   全样本 P95 = 0.556，P100 = 0.809（思考泄漏的重复文本）
+    # 取 0.5 给正常文章留 3 倍余量，同时拦住 0.81 那类。
+    #
+    # 这是「行文逻辑」里唯一通过验证的指标。另外两个候选被淘汰：
+    #   topic_keep   方向反了（正常散文 0.000，车轱辘话 1.000）
+    #   connect_per_1k 正常文章跨度 0-21.7，定不出可信阈值
+    cs.append({"type": "far_repeat", "op": "lte", "value": 0.5,
+               "label": "无远距离重复"})
     if min_punct is not None:
         cs.append({"type": "punct_kinds", "op": "gte", "value": min_punct,
                    "label": "标点不单调"})
@@ -433,6 +445,8 @@ SUPPORTED_CHECKS = {
     # chat 语言感（实测词表来自 34320 条真实回答，见 d13_prose.py）
     "chat_opener", "chat_sycophancy", "chat_preachy", "chat_bullets",
     "chat_bold", "chat_para",
+    # 行文逻辑：只有 far_repeat 通过了验证（见 d13_prose.py 的淘汰说明）
+    "far_repeat",
 }
 
 

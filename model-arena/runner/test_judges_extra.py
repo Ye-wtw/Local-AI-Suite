@@ -548,6 +548,33 @@ def test_d13_prose():
     check("D13 审计对真实题库无告警",
           _g.audit_coverage(_g.build()) == [], _g.audit_coverage(_g.build())[:2])
 
+    # --- 行文逻辑：只有 far_repeat 通过验证 ---
+    # 第一轮设计了 5 个指标，实测 4 个没有区分度（回指率恒为 1、首尾恒为 0）。
+    # 第二轮 3 个候选里 topic_keep 方向是反的（正常散文 0.000 / 车轱辘话 1.000），
+    # connect_per_1k 正常跨度 0-21.7 定不出阈值。只有 far_repeat 站得住。
+    normal_prose = ("雨打在老梧桐叶上，那声音像一千只手按着鼓面。我站在巷口抽烟，"
+                    "看烟雾被风拉扯成细丝，缠绕在生锈的铁栏杆之间。这座城市从不曾停下脚步，"
+                    "它只是换了一副皮肤。空气里开始有桂花味。远处传来收废品的吆喝。"
+                    "他抬头看了看天，云层很低。然而雨并没有要停的意思。于是我掐了烟往回走。")
+    loop_text = "他走进屋子。" * 8
+    mn = D.logic_metrics(normal_prose) or {}
+    ml = D.logic_metrics(loop_text) or {}
+    check("D13 正常散文 far_repeat 接近 0", (mn.get("far_repeat") or 0) < 0.2,
+          mn.get("far_repeat"))
+    check("D13 车轱辘话 far_repeat 接近 1", (ml.get("far_repeat") or 0) > 0.8,
+          ml.get("far_repeat"))
+    check("D13 太短的文本不产生逻辑指标",
+          D.logic_metrics("他走进屋子。他走了。") is None, None)
+    # 只保留验证过的指标，没验证的不能出现在输出里
+    check("D13 逻辑指标只输出 far_repeat",
+          set(mn.keys()) == {"far_repeat"}, list(mn.keys()))
+
+    fr_chk = {"type": "far_repeat", "op": "lte", "value": 0.5}
+    check("D13 far_repeat 阈值拦住车轱辘话",
+          D._check_ok(fr_chk, {"far_repeat": 0.81})[0] is False, None)
+    check("D13 far_repeat 阈值放行正常文章",
+          D._check_ok(fr_chk, {"far_repeat": 0.09})[0] is True, None)
+
     # --- ttr 上限必须随文本长度走 ---
     # 实测 73 条真实输出：300-450 字中位 0.606 / 最大 0.725，
     # 800+ 字中位 0.254 / 最大 0.496。固定上限 0.65 会误杀 10% 的短篇。
