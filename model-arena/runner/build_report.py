@@ -145,6 +145,13 @@ def main():
         # "kvmem(D2/D3/D4/D5)" 和 "queue(D9)" 两行。
         if isinstance(data, dict) and data.get("preset"):
             r["preset"] = data["preset"]
+        # 版本要读完文件立刻落到 r 上：原来只有 LEVEL_* 分支设它，
+        # 普通维度分支从没设过，于是所有诊断维度都被判成 unknown。
+        if isinstance(data, dict):
+            _sm = data.get("summary") or {}
+            _jv0 = data.get("judge_version") or _sm.get("judge_version")
+            if _jv0:
+                r["judge_version"] = _jv0
 
         # LEVEL_* files -> level summary with per-dim accuracy
         if kind.startswith("LEVEL_"):
@@ -182,9 +189,26 @@ def main():
             # LEVEL_/run_ wrappers, so fixing it alone changed nothing for a run
             # saved as its own D7 file.
             if s.get("n") and s["n"] >= _floor_for(d, s):
-                r["dims"][d] = {"n": s["n"], "correct": s.get("correct", 0),
-                                "acc": s.get("accuracy", 0.0),
-                                "errors": s.get("errors", 0)}
+                # D12 的 summary 没有 correct/accuracy —— 它是配对前后对比，
+                # 只有 compacted_acc / baseline_acc / retention。
+                # 通用读取器做 s.get("correct", 0)，缺失就静默变 0，
+                # 于是榜单给每个 D12 印出「0.0% (0/24)」：这个维度从来就没显示对过。
+                # 与"D5 用错校验器集合"同型：共享读取器套到了形状不同的维度上。
+                if d == "D12":
+                    _ret = s.get("retention")
+                    if _ret is None:
+                        _ret = s.get("compacted_acc") or 0.0
+                    r["dims"][d] = {"n": s["n"],
+                                    "correct": int(round(float(_ret) * s["n"])),
+                                    "acc": float(_ret),
+                                    "errors": s.get("errors", 0),
+                                    "metric": "retention",
+                                    "baseline_acc": s.get("baseline_acc"),
+                                    "compacted_acc": s.get("compacted_acc")}
+                else:
+                    r["dims"][d] = {"n": s["n"], "correct": s.get("correct", 0),
+                                    "acc": s.get("accuracy", 0.0),
+                                    "errors": s.get("errors", 0)}
             continue
 
         # run_* files -> aggregate per-suite summaries
@@ -256,6 +280,10 @@ def main():
             return SUITE_JV.get("public") or CURRENT_JV
         if dim in ("LCB", "lcb"):
             return SUITE_JV.get("lcb") or CURRENT_JV
+        # D13 的判分器（d13_prose.py）只在 writing suite 可达，指纹登记在
+        # SUITE_FILES["writing"]。漏了这条映射，每份 D13 结果都会被判成旧版本。
+        if dim in ("D13", "d13"):
+            return SUITE_JV.get("writing") or CURRENT_JV
         return CURRENT_JV
     stale = []
     merged = {}
@@ -287,8 +315,8 @@ def main():
             # Keep only dimensions that carry weight. A diagnostic dimension (D10)
             # has weight 0 and would otherwise inflate the coverage ratio above
             # 100% - 9 measured of 8 scored.
+            jv = r.get("judge_version")   # 提到分支外：diagnostic 也要用
             if d in scored:
-                jv = r.get("judge_version")
                 # A missing version is NOT "fine" - it means the file predates
                 # versioning, so nobody can say which judge produced it. Treat it
                 # as unknown and report it, otherwise the oldest and least
@@ -311,7 +339,17 @@ def main():
                 elif (v.get("n") or 0) == (prev.get("n") or 0):
                     m["dims"][d] = v     # 同样本量,新的替换旧的
             else:
-                m.setdefault("diagnostic", {})[d] = v
+                # 诊断维度也要带 judge_version，否则报告无法判断这份数据
+                # 是不是当前判分器产的 —— 原来这里直接塞 v，v 里没有版本字段，
+                # 于是所有诊断维度恒显示 ⚠旧，包括当天刚跑完的。
+                _v = dict(v)
+                _v["judge_version"] = jv or "unknown"
+                m.setdefault("diagnostic", {})[d] = _v
+                if not jv or jv == "unknown":
+                    stale.append({"endpoint": ep, "model": r.get("model"),
+                                  "dim": d, "file_version": "unknown",
+                                  "current": "(无版本机制的旧文件)",
+                                  "stamp": stamp})
         for w, v in r["speed"].items():
             m["speed"][w] = v
         if r.get("elapsed_s"):
@@ -366,7 +404,11 @@ def main():
                "index_name": weights["index_name"],
                "weights": weights, "runs": out,
                "paired": paired,
-               "dim_label": DIM_LABEL}
+               "dim_label": DIM_LABEL,
+               # stale 原来只打印到控制台，json 里查不到 —— 下游无法程序化
+               # 判断"这个分数是不是旧判分器产的"。
+               "stale": stale,
+               "judge_version_current": CURRENT_JV}
     os.makedirs(REPORTS, exist_ok=True)
     json.dump(payload, open(os.path.join(RESULTS, "leaderboard.json"), "w", encoding="utf-8"),
               ensure_ascii=False, indent=2)

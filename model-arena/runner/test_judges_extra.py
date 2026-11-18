@@ -548,6 +548,23 @@ def test_d13_prose():
     check("D13 审计对真实题库无告警",
           _g.audit_coverage(_g.build()) == [], _g.audit_coverage(_g.build())[:2])
 
+    # --- 每个结果文件的 judge_version 都要落到 run 上 ---
+    # 原来它只在 LEVEL_* 分支被赋值，普通维度分支从没设过 ——
+    # 所有诊断维度都被判成 unknown，报告里一律 ⚠旧，包括当天刚跑的。
+    import importlib.util as _iu3
+    _src = open(os.path.join(ROOT, "runner", "build_report.py"), encoding="utf-8").read()
+    check("build_report 在读文件后立刻取 judge_version",
+          'r["judge_version"] = _jv' in _src, None)
+    # 断言意图：顶层和 summary 两处都要读（变量名会变，用正则而非字面量）
+    import re as _re2
+    check("build_report 同时读顶层与 summary 的版本",
+          bool(_re2.search(r'data\.get\("judge_version"\)\s*or\s*_\w+\.get\("judge_version"\)',
+                           _src)), None)
+    check("build_report 的 stale 写进 json",
+          '"stale": stale' in _src, None)
+    check("D13 映射到 writing suite 版本",
+          'SUITE_JV.get("writing")' in _src, None)
+
     # --- far_repeat 只用于创作题，不用于 chat ---
     # 跨模型验证时发现 4 条超阈，逐条看：1 条是真车轱辘话（几百行「你妈。」），
     # 3 条是误判 —— 微信分步骤说明、iOS/安卓两套步骤、反复安慰。
