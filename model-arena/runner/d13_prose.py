@@ -369,6 +369,18 @@ THINK_MARKERS = [
     # 单独用「用户要求」会误伤第一人称叙事（「用户要求写四季。我打算…」），
     # 所以要求它后面紧跟创作指令词，这才是复述任务的语气。
     "用户要求用中文写", "用户要求写一篇", "用户要求用中文",
+    # ---- 英文思考泄漏（实测 Qwen3.5-9B via llama-server，默认 reasoning 开）----
+    #
+    # 9B 在 chat 题上会把完整的英文思考过程当正文交出来：
+    #   例如 "Thinking Process:" 后面跟 "1.  **Analyze the Request:**" 的列表；
+    # 于是分点数被算成 70-116（远超字数），全部判错 —— 判错是对的，
+    # 但原因不是 AI 腔，是**它没给出答案**。这两类必须分开统计。
+    #
+    # llama-server 没有 --no-thinking 开关（ninfer 有），
+    # 所以只能靠判分器识别，并在 prompt 侧提醒模型直接作答。
+    "Thinking Process:", "thinking process",
+    "Analyze the Request:", "Analyze the Input:",
+    "分析请求：", "思考过程：",
 ]
 
 
@@ -503,7 +515,27 @@ def judge_prose(entry, response):
     # 这里同理 —— 中文创作题回一句英文 "I need more information"（实测 mock
     # 端点就是这样）会让所有形式指标归零，看上去像"这个模型文笔极差"，
     # 实际是它根本没写中文。标记 no_han 让上层能单独统计，而不是塞进分母。
-    if han_count(txt) == 0:
+    # 没有汉字的回答**不一定**是没作答 —— 要看这道题要不要中文。
+    #
+    # 原来是无条件判 no_han，于是这两条正确答案被打成"没作答"：
+    #   翻译题  "The weather is nice today."   <- 译文就该是英文
+    #   算术题  "1 + 1 = **2**"                <- 答案就是个数字
+    # 判据套错了任务类型：no_han 的用意是"中文创作题回了英文 = 没写中文"，
+    # 不是"凡是不含汉字就算没答"。只有**要求汉字产出**的题才该用它。
+    # 判"这道题是否必须产出汉字"：
+    #   han_count 只有 in_range / gte 时才是**下限要求**（必须写够字）；
+    #   用 lte 时它只是**上限**（别写太长），不写汉字照样合规 ——
+    #   实测「1 + 1 = **2**」就是这么被冤枉的：它要的是"别啰嗦"，不是"写中文"。
+    # 其余创作类指标（感官/句长/复读/标点…）本身就要求中文文本。
+    def _requires_han(c):
+        t = c.get("type")
+        if t == "han_count":
+            return c.get("op") in ("in_range", "gte")
+        return t in ("sensory_cats", "cv_sentence_len", "ttr", "distinct_2",
+                     "distinct_3", "sentence_count", "punct_kinds", "far_repeat",
+                     "dialogue_ratio", "dialogue_count", "keeps_info")
+    needs_han = any(_requires_han(c) for c in checks)
+    if han_count(txt) == 0 and needs_han:
         return {"correct": False, "score": 0.0,
                 "reason": "no Chinese characters in reply (not judged as poor writing)",
                 "detail": [], "no_han": True}

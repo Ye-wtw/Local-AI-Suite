@@ -565,6 +565,55 @@ def test_d13_prose():
     check("D13 映射到 writing suite 版本",
           'SUITE_JV.get("writing")' in _src, None)
 
+    # --- 英文思考泄漏要被识别（llama-server 没有 --no-thinking）---
+    # 实测 Qwen3.5-9B 在 chat 题上交出完整的英文思考过程：
+    #   "Thinking Process:\n\n1.  **Analyze the Request:**\n    *   User asks: ..."
+    # 分点数被算成 70-116（远超字数）。判错是对的，但原因不是 AI 腔，
+    # 是它根本没给出答案 —— 两类必须分开统计，否则会把"没作答"误读成"文风差"。
+    en_leak = ("Thinking Process:\n\n1.  **Analyze the Request:**\n"
+               "    *   User asks: what time is it in Beijing\n"
+               "    *   Intent: the user wants the current time\n"
+               "2.  **Analyze the Capabilities:**\n    *   I cannot access real time")
+    check("D13 英文思考泄漏被判 no_delivery",
+          D.judge_prose({"expect": {"checks": []}}, en_leak).get("no_delivery") is True, None)
+    check("D13 正常英文回答不被误判为思考泄漏",
+          D.judge_prose({"expect": {"checks": []}},
+                        "The capital of France is Paris.").get("no_delivery") is None, None)
+
+    # --- no_han 只对"必须产出中文"的题生效 ---
+    # 原来是无条件判：没有汉字 = 没作答。实测冤枉了两道正确答案：
+    #   翻译题 "The weather is nice today."    <- 译文就该是英文
+    #   算术题 "1 + 1 = **2**"                 <- 答案就是个数字
+    tr_q = {"expect": {"checks": [
+        {"type": "contains", "op": "contains", "value": ["weather"]},
+        {"type": "chat_sycophancy", "op": "lte", "value": 0},
+    ]}}
+    v = D.judge_prose(tr_q, "The weather is nice today.")
+    check("D13 翻译题答英文不判 no_han", not v.get("no_han"), v.get("reason"))
+    check("D13 翻译题答英文判过", v["correct"] is True, v.get("reason"))
+
+    math_q = {"expect": {"checks": [
+        {"type": "chat_bold", "op": "lte", "value": 2},
+        {"type": "han_count", "op": "lte", "value": 40},
+    ]}}
+    v = D.judge_prose(math_q, "1 + 1 = **2**")
+    check("D13 纯数字答案不判 no_han（han_count 只在上限时）",
+          not v.get("no_han"), v.get("reason"))
+
+    # 但创作题必须仍然受 no_han 保护
+    prose_q = {"expect": {"checks": [
+        {"type": "han_count", "op": "in_range", "value": [100, 800]},
+    ]}}
+    v = D.judge_prose(prose_q, "I need more information to answer this.")
+    check("D13 中文创作题回英文仍判 no_han", v.get("no_han") is True, v.get("reason"))
+
+    # --- chat_bold 不设 0：1 处加粗是正常重点标注 ---
+    # 20 题实测加粗分布 1,1,2,3,5,7,7,8,12,14,14,14,19,21，汇报腔都在 5 处以上
+    bold_chk = {"type": "chat_bold", "op": "lte", "value": 2}
+    check("D13 单处加粗放行", D._check_ok(bold_chk, {"chat_bold": 1})[0] is True, None)
+    check("D13 两处加粗放行", D._check_ok(bold_chk, {"chat_bold": 2})[0] is True, None)
+    check("D13 成片加粗拦住", D._check_ok(bold_chk, {"chat_bold": 14})[0] is False, None)
+
     # --- far_repeat 只用于创作题，不用于 chat ---
     # 跨模型验证时发现 4 条超阈，逐条看：1 条是真车轱辘话（几百行「你妈。」），
     # 3 条是误判 —— 微信分步骤说明、iOS/安卓两套步骤、反复安慰。
